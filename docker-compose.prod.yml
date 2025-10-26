@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: comptafpb_postgres_prod
+    environment:
+      POSTGRES_DB: comptafpb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - comptafpb_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: comptafpb_backend_prod
+    environment:
+      DATABASE_URL: postgresql://postgres:password123@postgres:5432/comptafpb
+      JWT_SECRET: votre-secret-jwt-super-securise-pour-production
+      NODE_ENV: production
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - comptafpb_network
+    volumes:
+      - ./backend/prisma:/app/prisma
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: comptafpb_frontend_prod
+    environment:
+      NEXTAUTH_URL: https://VOTRE-DOMAINE.com
+      NEXTAUTH_SECRET: votre-secret-nextauth-super-securise
+      BACKEND_URL: https://VOTRE-DOMAINE.com
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - comptafpb_network
+
+volumes:
+  postgres_data:
+
+networks:
+  comptafpb_network:
+    driver: bridge
