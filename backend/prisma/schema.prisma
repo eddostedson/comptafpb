@@ -1,0 +1,159 @@
+// Prisma Schema - CGCS (Comptabilité de Gestion des Centres de Santé)
+// Module 1: Authentification & Gestion des rôles
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// AUTHENTIFICATION & RÔLES
+// ========================================
+
+enum RoleType {
+  ADMIN
+  REGISSEUR
+  CHEF_CENTRE
+}
+
+enum StatutUser {
+  ACTIF
+  INACTIF
+  SUSPENDU
+}
+
+// Table principale des utilisateurs
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String      // Hash bcrypt
+  nom       String
+  prenom    String
+  telephone String?
+  role      RoleType
+  statut    StatutUser  @default(ACTIF)
+  
+  // Relations hiérarchiques
+  centreId    String?
+  centre      Centre?     @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  
+  regisseurId String?
+  regisseur   Regisseur?  @relation(fields: [regisseurId], references: [id], onDelete: SetNull)
+  
+  // Métadonnées
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?
+  
+  // Audit logs (relations)
+  auditActions AuditAction[]
+  
+  @@index([email])
+  @@index([centreId])
+  @@index([regisseurId])
+  @@index([role])
+  @@map("users")
+}
+
+// Régisseurs (supervisent 20-25 centres)
+model Regisseur {
+  id          String   @id @default(uuid())
+  code        String   @unique // Ex: REG-001
+  nom         String
+  prenom      String
+  email       String   @unique
+  telephone   String?
+  region      String   // Zone géographique
+  actif       Boolean  @default(true)
+  
+  // Relations
+  centres     Centre[]
+  users       User[]   // Comptes utilisateurs liés
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([code])
+  @@index([region])
+  @@map("regisseurs")
+}
+
+// Centres de santé (2500+)
+model Centre {
+  id            String   @id @default(uuid())
+  code          String   @unique // Ex: CS-001
+  nom           String
+  adresse       String
+  commune       String
+  province      String
+  region        String
+  telephone     String?
+  email         String?
+  type          String   // Public, Privé, Confessionnel
+  niveau        String   // CS, CMA, Hôpital
+  actif         Boolean  @default(true)
+  
+  // Hiérarchie
+  regisseurId   String?
+  regisseur     Regisseur? @relation(fields: [regisseurId], references: [id], onDelete: SetNull)
+  
+  // Relations
+  users         User[]
+  
+  // Données financières (à venir dans modules suivants)
+  // budgets       Budget[]
+  // ordresPaiement OrdrePaiement[]
+  // comptesTresorerie CompteTresorerie[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([code])
+  @@index([regisseurId])
+  @@index([region])
+  @@index([type])
+  @@map("centres")
+}
+
+// ========================================
+// AUDIT & TRAÇABILITÉ
+// ========================================
+
+enum ActionType {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  VALIDATE
+  REJECT
+  EXPORT
+  IMPORT
+}
+
+model AuditAction {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action      ActionType
+  entity      String     // Ex: "Budget", "OrdrePaiement"
+  entityId    String?
+  description String?
+  metadata    Json?      // Données supplémentaires
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime   @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_actions")
+}
+

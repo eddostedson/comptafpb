@@ -1,0 +1,88 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: cgcs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cgcs_db
+      POSTGRES_USER: cgcs_user
+      POSTGRES_PASSWORD: cgcs_password_2024
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cgcs_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cgcs_user -d cgcs_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cgcs_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://cgcs_user:cgcs_password_2024@postgres:5432/cgcs_db?schema=public
+      JWT_SECRET: cgcs_jwt_secret_change_in_production_2024
+      JWT_EXPIRATION: 24h
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cgcs_network
+    command: npm run start:dev
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cgcs_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXTAUTH_URL: http://localhost:3975
+      NEXTAUTH_SECRET: cgcs_nextauth_secret_change_in_production_2024
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    ports:
+      - "3975:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - cgcs_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  cgcs_network:
+    driver: bridge
+
