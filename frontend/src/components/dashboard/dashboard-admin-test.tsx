@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Building2, Users, FileText, TrendingUp, ArrowRight, Activity, Zap, Shield, Link2, UserCircle, Wifi, WifiOff, Search, Monitor, Globe, Home, Clock } from 'lucide-react';
+import { Building2, Users, FileText, TrendingUp, ArrowRight, Activity, Zap, Shield, Link2, UserCircle, Wifi, WifiOff, Search, Monitor, Globe, Home, Clock, Lock } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -302,9 +302,17 @@ export default function DashboardAdminTest() {
           <p className="text-xl text-slate-600 font-medium">
             Vue d'ensemble nationale - CGCS
           </p>
-          <div className="flex items-center justify-center mt-4 space-x-2">
-            <Activity className="w-5 h-5 text-green-500" />
-            <span className="text-green-600 font-semibold">Système opérationnel</span>
+          <div className="flex items-center justify-center mt-4 space-x-4">
+            <div className="flex items-center space-x-2">
+              <Activity className="w-5 h-5 text-green-500" />
+              <span className="text-green-600 font-semibold">Système opérationnel</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
+              <Monitor className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-600">Frontend</span>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-blue-600">En ligne</span>
+            </div>
           </div>
         </div>
         
@@ -380,6 +388,13 @@ export default function DashboardAdminTest() {
                 <a href="/op" className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-amber-50 to-amber-100 hover:from-amber-100 hover:to-amber-200 transition-all duration-300 group">
                   <span className="font-semibold text-amber-700">Valider les OP</span>
                   <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform duration-300" />
+                </a>
+                <a href="/admin/password-reset-requests" className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 transition-all duration-300 group">
+                  <span className="font-semibold text-red-700 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Réinitialiser les mots de passe
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-red-500 group-hover:translate-x-1 transition-transform duration-300" />
                 </a>
               </div>
             </div>

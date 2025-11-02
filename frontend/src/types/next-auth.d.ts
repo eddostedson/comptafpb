@@ -8,6 +8,7 @@ declare module 'next-auth' {
     role: string;
     centreId?: string | null;
     regisseurId?: string | null;
+    mustChangePassword?: boolean;
     accessToken: string;
   }
 
@@ -19,6 +20,7 @@ declare module 'next-auth' {
       role: string;
       centreId?: string | null;
       regisseurId?: string | null;
+      mustChangePassword?: boolean;
     };
     accessToken: string;
   }
@@ -30,6 +32,7 @@ declare module 'next-auth/jwt' {
     role: string;
     centreId?: string | null;
     regisseurId?: string | null;
+    mustChangePassword?: boolean;
     accessToken: string;
   }
 }

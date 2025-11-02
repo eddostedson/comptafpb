@@ -6,9 +6,11 @@ import { CreateCentreDto } from './dto/create-centre.dto';
 import { UpdateCentreDto } from './dto/update-centre.dto';
 import { CreateChefCentreDto } from './dto/create-chef-centre.dto';
 import { UpdateChefCentreDto } from './dto/update-chef-centre.dto';
+import { CreatePasswordResetRequestDto } from './dto/create-password-reset-request.dto';
+import { GeneratePasswordDto } from './dto/generate-password.dto';
 import { DivisionsAdministrativesService } from '../divisions-administratives/divisions-administratives.service';
 import * as bcrypt from 'bcrypt';
-import { RoleType, StatutUser } from '@prisma/client';
+import { RoleType, StatutUser, StatutPasswordReset } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -1285,6 +1287,396 @@ export class AdminService {
         nom: chef.nom,
         prenom: chef.prenom,
         email: chef.email,
+      },
+    };
+  }
+
+  /**
+   * Créer une demande de réinitialisation de mot de passe
+   */
+  async createPasswordResetRequest(createPasswordResetRequestDto: CreatePasswordResetRequestDto) {
+    console.log('[Password Reset] Demande pour l\'email:', createPasswordResetRequestDto.email);
+    
+    // Chercher d'abord dans la table User
+    let user = await this.prisma.user.findUnique({
+      where: { email: createPasswordResetRequestDto.email },
+      include: {
+        centre: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+          },
+        },
+        regisseur: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            prenom: true,
+            region: true,
+          },
+        },
+      },
+    });
+
+    // Si l'utilisateur n'est pas trouvé dans User, chercher dans Regisseur
+    if (!user) {
+      console.log('[Password Reset] Utilisateur non trouvé dans User, recherche dans Regisseur...');
+      const regisseur = await this.prisma.regisseur.findUnique({
+        where: { email: createPasswordResetRequestDto.email },
+      });
+
+      if (regisseur) {
+        console.log('[Password Reset] Régisseur trouvé:', { id: regisseur.id, email: regisseur.email });
+        // Chercher un User lié à ce régisseur via regisseurId
+        user = await this.prisma.user.findFirst({
+          where: {
+            regisseurId: regisseur.id,
+            role: RoleType.REGISSEUR,
+          },
+          include: {
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
+            centre: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+              },
+            },
+          },
+        });
+
+        // Si aucun User n'est trouvé avec ce régisseur, chercher un User avec l'email du régisseur
+        // (peut arriver si le User a été créé avec l'email du régisseur mais sans regisseurId)
+        if (!user) {
+          console.log('[Password Reset] Aucun User lié au régisseur via regisseurId, recherche par email du régisseur...');
+          user = await this.prisma.user.findUnique({
+            where: {
+              email: regisseur.email,
+            },
+            include: {
+              regisseur: {
+                select: {
+                  id: true,
+                  code: true,
+                  nom: true,
+                  prenom: true,
+                  region: true,
+                },
+              },
+              centre: {
+                select: {
+                  id: true,
+                  code: true,
+                  nom: true,
+                },
+              },
+            },
+          });
+          
+          // Si un User existe avec l'email du régisseur mais sans regisseurId, mettre à jour le lien
+          if (user && !user.regisseurId && user.role === RoleType.REGISSEUR) {
+            console.log('[Password Reset] User trouvé avec email du régisseur mais sans regisseurId, mise à jour du lien...');
+            user = await this.prisma.user.update({
+              where: { id: user.id },
+              data: {
+                regisseurId: regisseur.id,
+              },
+              include: {
+                regisseur: {
+                  select: {
+                    id: true,
+                    code: true,
+                    nom: true,
+                    prenom: true,
+                    region: true,
+                  },
+                },
+                centre: {
+                  select: {
+                    id: true,
+                    code: true,
+                    nom: true,
+                  },
+                },
+              },
+            });
+          }
+          
+          // Si aucun User n'existe du tout pour ce régisseur, créer un User avec un mot de passe temporaire
+          // Cela permettra au régisseur de demander une réinitialisation
+          if (!user) {
+            console.log('[Password Reset] Aucun User trouvé pour ce régisseur, création d\'un User avec mot de passe temporaire...');
+            const tempPassword = await bcrypt.hash('temp' + regisseur.id.substring(0, 8), 10);
+            user = await this.prisma.user.create({
+              data: {
+                email: regisseur.email,
+                password: tempPassword, // Mot de passe temporaire qui sera remplacé par la réinitialisation
+                nom: regisseur.nom,
+                prenom: regisseur.prenom,
+                telephone: regisseur.telephone || null,
+                role: RoleType.REGISSEUR,
+                regisseurId: regisseur.id,
+                code: regisseur.code, // Utiliser le code du régisseur
+                statut: StatutUser.ACTIF,
+                mustChangePassword: true, // Forcer le changement de mot de passe à la première connexion
+              },
+              include: {
+                regisseur: {
+                  select: {
+                    id: true,
+                    code: true,
+                    nom: true,
+                    prenom: true,
+                    region: true,
+                  },
+                },
+                centre: {
+                  select: {
+                    id: true,
+                    code: true,
+                    nom: true,
+                  },
+                },
+              },
+            });
+            console.log('[Password Reset] User créé automatiquement pour le régisseur:', user.id);
+          }
+        }
+      }
+    }
+
+    console.log('[Password Reset] Utilisateur trouvé:', user ? { id: user.id, email: user.email, role: user.role } : 'NULL');
+
+    if (!user) {
+      // Vérifier tous les utilisateurs avec un email similaire pour déboguer
+      const allUsers = await this.prisma.user.findMany({
+        select: { id: true, email: true, role: true },
+        take: 10,
+      });
+      console.log('[Password Reset] Premiers utilisateurs dans la DB:', allUsers);
+      
+      // Vérifier aussi les régisseurs
+      const allRegisseurs = await this.prisma.regisseur.findMany({
+        select: { id: true, email: true },
+        take: 10,
+      });
+      console.log('[Password Reset] Premiers régisseurs dans la DB:', allRegisseurs);
+      
+      throw new NotFoundException('Aucun utilisateur trouvé avec cet email. Vérifiez que l\'email correspond bien à un compte utilisateur (User) ou à un régisseur avec un compte utilisateur associé.');
+    }
+
+    console.log('[Password Reset] Rôle de l\'utilisateur:', user.role);
+    
+    if (user.role !== RoleType.CHEF_CENTRE && user.role !== RoleType.REGISSEUR) {
+      console.log('[Password Reset] Rôle non autorisé:', user.role);
+      throw new ConflictException('Seuls les chefs de centre et les régisseurs peuvent demander une réinitialisation de mot de passe');
+    }
+
+    // Vérifier s'il existe déjà une demande en attente pour cet utilisateur
+    const existingRequest = await this.prisma.passwordResetRequest.findFirst({
+      where: {
+        userId: user.id,
+        statut: StatutPasswordReset.EN_ATTENTE,
+      },
+    });
+
+    if (existingRequest) {
+      throw new ConflictException('Une demande de réinitialisation est déjà en attente pour cet utilisateur');
+    }
+
+    // Créer la demande
+    const request = await this.prisma.passwordResetRequest.create({
+      data: {
+        userId: user.id,
+        statut: StatutPasswordReset.EN_ATTENTE,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            nom: true,
+            prenom: true,
+            code: true,
+            role: true,
+            centre: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+              },
+            },
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Demande de réinitialisation créée avec succès',
+      request: {
+        id: request.id,
+        user: request.user,
+        statut: request.statut,
+        createdAt: request.createdAt,
+      },
+    };
+  }
+
+  /**
+   * Récupérer toutes les demandes de réinitialisation de mot de passe
+   */
+  async getAllPasswordResetRequests() {
+    const requests = await this.prisma.passwordResetRequest.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            nom: true,
+            prenom: true,
+            code: true,
+            role: true,
+            centre: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+              },
+            },
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return requests.map((request: any) => ({
+      id: request.id,
+      user: request.user,
+      statut: request.statut,
+      nouveauMotDePasse: request.nouveauMotDePasse,
+      traitePar: request.traitePar,
+      traiteLe: request.traiteLe,
+      createdAt: request.createdAt,
+      updatedAt: request.updatedAt,
+    }));
+  }
+
+  /**
+   * Générer un nouveau mot de passe pour une demande de réinitialisation
+   */
+  async generatePasswordForRequest(requestId: string, adminId: string) {
+    // Récupérer la demande
+    const request = await this.prisma.passwordResetRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Demande de réinitialisation introuvable');
+    }
+
+    if (request.statut !== StatutPasswordReset.EN_ATTENTE) {
+      throw new ConflictException('Cette demande a déjà été traitée ou annulée');
+    }
+
+    // Générer un mot de passe unique (8 caractères aléatoires avec lettres et chiffres)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let newPassword = '';
+    for (let i = 0; i < 8; i++) {
+      newPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Mettre à jour le mot de passe de l'utilisateur et forcer le changement
+    await this.prisma.user.update({
+      where: { id: request.userId },
+      data: {
+        password: hashedPassword,
+        mustChangePassword: true, // Forcer l'utilisateur à changer son mot de passe à la prochaine connexion
+      },
+    });
+
+    // Mettre à jour la demande
+    const updatedRequest = await this.prisma.passwordResetRequest.update({
+      where: { id: requestId },
+      data: {
+        statut: StatutPasswordReset.TRAITE,
+        nouveauMotDePasse: newPassword, // Stocker le mot de passe en clair pour que l'admin puisse le voir
+        traitePar: adminId,
+        traiteLe: new Date(),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            nom: true,
+            prenom: true,
+            code: true,
+            role: true,
+            centre: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+              },
+            },
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Nouveau mot de passe généré avec succès',
+      request: {
+        id: updatedRequest.id,
+        user: updatedRequest.user,
+        nouveauMotDePasse: updatedRequest.nouveauMotDePasse,
+        statut: updatedRequest.statut,
+        traiteLe: updatedRequest.traiteLe,
       },
     };
   }

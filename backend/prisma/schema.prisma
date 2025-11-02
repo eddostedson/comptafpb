@@ -8,23 +8,25 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  password     String
-  nom          String
-  prenom       String
-  telephone    String?
-  role         RoleType
-  statut       StatutUser    @default(ACTIF)
-  centreId     String?
-  regisseurId  String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  lastLogin    DateTime?
-  code         String?       @unique
-  auditActions AuditAction[]
-  centre       Centre?       @relation(fields: [centreId], references: [id])
-  regisseur    Regisseur?    @relation(fields: [regisseurId], references: [id])
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  password            String
+  nom                 String
+  prenom              String
+  telephone           String?
+  role                RoleType
+  statut              StatutUser           @default(ACTIF)
+  centreId            String?
+  regisseurId         String?
+  mustChangePassword  Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  lastLogin           DateTime?
+  code                String?              @unique
+  auditActions        AuditAction[]
+  passwordResetRequests PasswordResetRequest[]
+  centre              Centre?              @relation(fields: [centreId], references: [id])
+  regisseur           Regisseur?           @relation(fields: [regisseurId], references: [id])
 
   @@index([email])
   @@index([code])
@@ -276,6 +278,23 @@ model DivisionAdministrative {
   @@map("divisions_administratives")
 }
 
+model PasswordResetRequest {
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statut      StatutPasswordReset @default(EN_ATTENTE)
+  nouveauMotDePasse String?       // Mot de passe généré par l'admin
+  traitePar   String?             // ID de l'admin qui a traité la demande
+  traiteLe    DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([statut])
+  @@index([createdAt])
+  @@map("password_reset_requests")
+}
+
 enum RoleType {
   ADMIN
   REGISSEUR
@@ -333,4 +352,10 @@ enum ActionType {
   REJECT
   EXPORT
   IMPORT
+}
+
+enum StatutPasswordReset {
+  EN_ATTENTE
+  TRAITE
+  ANNULE
 }

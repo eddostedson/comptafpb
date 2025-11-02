@@ -129,9 +129,12 @@ export class AuthService {
     // Logger la connexion
     await this.logAuditAction(user.id, 'LOGIN', 'User', user.id, 'Connexion réussie');
 
-    // Retourner l'utilisateur sans le password
+    // Retourner l'utilisateur sans le password, avec l'info mustChangePassword
     const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return {
+      ...userWithoutPassword,
+      mustChangePassword: user.mustChangePassword, // Inclure cette info pour le frontend
+    };
   }
 
   /**
@@ -144,6 +147,7 @@ export class AuthService {
       role: user.role,
       centreId: user.centreId,
       regisseurId: user.regisseurId,
+      mustChangePassword: user.mustChangePassword || false, // Inclure dans le JWT
     };
 
     return {
@@ -156,6 +160,7 @@ export class AuthService {
         role: user.role,
         centreId: user.centreId,
         regisseurId: user.regisseurId,
+        mustChangePassword: user.mustChangePassword || false, // Inclure dans la réponse
         centre: user.centre,
         regisseur: user.regisseur,
       },
@@ -209,6 +214,56 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /**
+   * Changer le mot de passe de l'utilisateur (obligatoire après réinitialisation)
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    // Récupérer l'utilisateur
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    // Vérifier que l'utilisateur doit changer son mot de passe
+    if (!user.mustChangePassword) {
+      throw new ConflictException('Vous n\'êtes pas obligé de changer votre mot de passe pour le moment');
+    }
+
+    // Vérifier le mot de passe actuel
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Mot de passe actuel incorrect');
+    }
+
+    // Vérifier que le nouveau mot de passe est différent de l'ancien
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new ConflictException('Le nouveau mot de passe doit être différent de l\'ancien');
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Mettre à jour le mot de passe et désactiver mustChangePassword
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+        mustChangePassword: false, // Le mot de passe a été changé, plus besoin de forcer le changement
+      },
+    });
+
+    // Logger l'action
+    await this.logAuditAction(userId, 'UPDATE', 'User', userId, 'Changement de mot de passe obligatoire effectué');
+
+    return {
+      message: 'Mot de passe changé avec succès. Vous pouvez maintenant utiliser votre nouveau mot de passe.',
+    };
   }
 
   /**

@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
@@ -234,6 +235,31 @@ export class AdminController {
   @ApiResponse({ status: 409, description: 'Chef de centre associé à des budgets' })
   async deleteChefCentre(@Param('id') id: string) {
     return this.adminService.deleteChefCentre(id);
+  }
+
+  // ========================================
+  // GESTION DES DEMANDES DE RÉINITIALISATION DE MOT DE PASSE
+  // ========================================
+
+  @Get('password-reset-requests')
+  @ApiOperation({ summary: 'Récupérer toutes les demandes de réinitialisation de mot de passe' })
+  @ApiResponse({ status: 200, description: 'Liste des demandes de réinitialisation' })
+  async getAllPasswordResetRequests() {
+    return this.adminService.getAllPasswordResetRequests();
+  }
+
+  @Post('password-reset-requests/:requestId/generate-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Générer un nouveau mot de passe pour une demande de réinitialisation' })
+  @ApiResponse({ status: 200, description: 'Nouveau mot de passe généré avec succès' })
+  @ApiResponse({ status: 404, description: 'Demande introuvable' })
+  @ApiResponse({ status: 409, description: 'Demande déjà traitée' })
+  async generatePasswordForRequest(
+    @Param('requestId') requestId: string,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.id;
+    return this.adminService.generatePasswordForRequest(requestId, adminId);
   }
 }
 

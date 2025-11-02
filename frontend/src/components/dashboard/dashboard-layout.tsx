@@ -1,14 +1,23 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { Home, Building2, Users, FileText, TrendingUp, Activity } from 'lucide-react';
+import { Home, Building2, Users, FileText, TrendingUp, Activity, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import TopBar from './top-bar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Rediriger vers la page de changement de mot de passe si nécessaire
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.mustChangePassword && pathname !== '/change-password') {
+      router.push('/change-password');
+    }
+  }, [status, session, pathname, router]);
 
   const navigation = [
     { name: 'Accueil', href: '/home', icon: Home },
@@ -16,6 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Centres', href: '/centres', icon: Building2 },
     { name: 'Régisseurs', href: '/regisseurs', icon: Users },
     { name: 'Divisions Admin', href: '/admin/divisions-administratives', icon: Building2, adminOnly: true },
+    { name: 'Réinitialisations', href: '/admin/password-reset-requests', icon: Lock, adminOnly: true },
     { name: 'Budget', href: '/budget', icon: TrendingUp },
     { name: 'Ordres de Paiement', href: '/op', icon: FileText },
     { name: 'NBE', href: '/nbe', icon: Building2 },

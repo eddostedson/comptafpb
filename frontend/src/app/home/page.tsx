@@ -16,8 +16,11 @@ export default function HomePage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
+    } else if (status === 'authenticated' && session?.user?.mustChangePassword) {
+      // Si l'utilisateur doit changer son mot de passe, rediriger vers la page de changement
+      router.push('/change-password');
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   if (status === 'loading') {
     return (

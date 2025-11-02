@@ -54,6 +54,7 @@ export const authOptions: NextAuthOptions = {
               role: data.user.role,
               centreId: data.user.centreId,
               regisseurId: data.user.regisseurId,
+              mustChangePassword: data.user.mustChangePassword || false,
               accessToken: data.access_token,
             };
           }
@@ -78,6 +79,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.centreId = user.centreId;
         token.regisseurId = user.regisseurId;
+        token.mustChangePassword = (user as any).mustChangePassword || false;
         token.accessToken = user.accessToken;
       }
       return token;
@@ -88,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.centreId = token.centreId as string | null;
         session.user.regisseurId = token.regisseurId as string | null;
+        session.user.mustChangePassword = (token.mustChangePassword as boolean) || false;
         session.accessToken = token.accessToken as string;
       }
       return session;
