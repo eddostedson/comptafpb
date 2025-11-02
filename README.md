@@ -33,11 +33,38 @@ Application web de gestion comptable, budgétaire et financière pour plus de 2 
 
 ## 🚀 Installation & Démarrage
 
+> 💡 **Pour le développement quotidien**, nous recommandons le **[mode développement local sans Docker](DEVELOPPEMENT_LOCAL.md)** (plus simple, plus rapide, plus stable) !
+
 ### Prérequis
 
 - Node.js 20+
-- Docker & Docker Compose
 - pnpm (recommandé)
+- **Option A** : ⭐ **Supabase** (Recommandé - Le plus simple !) | **Option B** : PostgreSQL local | **Option C** : Docker (uniquement pour PostgreSQL)
+
+> 💡 **Nouveau** : Utilisez **Supabase** pour la base de données ! C'est gratuit, hébergé, et ne nécessite aucune installation. Voir [SUPABASE_SETUP.md](SUPABASE_SETUP.md) pour la configuration.
+
+### 🎯 Deux modes de démarrage
+
+#### Option 1 : Développement Local (Recommandé) ⭐
+Plus simple, plus rapide, plus stable pour le développement quotidien.
+
+```bash
+# Utiliser le script de démarrage automatique
+.\start-dev.ps1      # Windows
+./start-dev.sh       # Linux/Mac
+
+# Ou manuellement :
+# Terminal 1 - Backend
+cd backend && pnpm install && pnpm run start:dev
+
+# Terminal 2 - Frontend  
+cd frontend && pnpm install && pnpm run dev
+```
+
+**Voir le guide complet** : [DEVELOPPEMENT_LOCAL.md](DEVELOPPEMENT_LOCAL.md)
+
+#### Option 2 : Docker Compose (Production/CI)
+Pour les tests d'intégration, la production, ou si vous préférez Docker.
 
 ### 1. Cloner le projet
 
@@ -48,25 +75,73 @@ cd comptafpb
 
 ### 2. Configuration des variables d'environnement
 
-Créer un fichier `.env` à la racine du projet (copier depuis `.env.example`) :
+**Backend** (`backend/.env`) :
+```env
+# Option A : Supabase (Recommandé)
+DATABASE_URL=postgresql://postgres.xxxxx:PASSWORD@aws-0-xx-region.pooler.supabase.com:6543/postgres?pgbouncer=true
 
-```bash
-# PostgreSQL
-DATABASE_URL="postgresql://cgcs_user:cgcs_password_2024@localhost:5432/cgcs_db?schema=public"
+# Option B : PostgreSQL local
+# DATABASE_URL=postgresql://cgcs_user:cgcs_password_2024@localhost:5432/cgcs_db?schema=public
 
-# JWT
-JWT_SECRET="cgcs_jwt_secret_change_in_production_2024"
-JWT_EXPIRATION="24h"
-
-# NextAuth
-NEXTAUTH_URL="http://localhost:3975"
-NEXTAUTH_SECRET="cgcs_nextauth_secret_change_in_production_2024"
-
-# API
-NEXT_PUBLIC_API_URL="http://localhost:3001/api"
+JWT_SECRET=cgcs_jwt_secret_change_in_production_2024
+JWT_EXPIRATION=24h
+PORT=3001
 ```
 
-### 3. Démarrer avec Docker Compose
+> 📝 **Pour Supabase** : Récupérez votre URL de connexion dans Supabase Dashboard → Settings → Database → Connection string → URI
+
+**Frontend** (`frontend/.env.local`) :
+```env
+NEXTAUTH_URL=http://localhost:3975
+NEXTAUTH_SECRET=cgcs_nextauth_secret_change_in_production_2024
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+### 3. Initialiser la base de données
+
+```bash
+# Backend
+cd backend
+pnpm install
+npx prisma generate
+npx prisma migrate dev
+pnpm run prisma:seed
+```
+
+### 4. Démarrer les services
+
+**Option A : Script automatique (Recommandé)**
+```bash
+# Windows
+.\start-dev.ps1
+
+# Linux/Mac
+chmod +x start-dev.sh
+./start-dev.sh
+```
+
+**Option B : Manuellement**
+```bash
+# Terminal 1 - Backend
+cd backend
+pnpm run start:dev
+
+# Terminal 2 - Frontend
+cd frontend
+pnpm run dev
+```
+
+### 5. Accéder à l'application
+
+- 🖥️ Frontend: http://localhost:3975
+- 🔧 Backend API: http://localhost:3001
+- 📚 Swagger docs: http://localhost:3001/api/docs
+
+---
+
+## 🐳 Démarrage avec Docker Compose (Alternative)
+
+Si vous préférez Docker Compose pour tout :
 
 ```bash
 # Démarrer tous les services

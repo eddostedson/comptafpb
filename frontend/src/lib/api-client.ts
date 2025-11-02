@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL 
+    ? (process.env.NEXT_PUBLIC_API_URL.endsWith('/api') 
+        ? process.env.NEXT_PUBLIC_API_URL 
+        : `${process.env.NEXT_PUBLIC_API_URL}/api`)
+    : 'http://localhost:3001/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,12 +26,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Rediriger vers login si non authentifié
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-    }
+    // Ne pas rediriger automatiquement sur 401
+    // Laisser les composants gérer eux-mêmes la redirection si nécessaire
+    // Cela évite les redirections intempestives lors du chargement des données
     return Promise.reject(error);
   }
 );

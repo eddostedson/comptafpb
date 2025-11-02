@@ -2,7 +2,8 @@
 
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wallet, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Wallet, FileText, CheckCircle, Clock, Plus } from 'lucide-react';
+import Link from 'next/link';
 import DashboardLayout from './dashboard-layout';
 
 export default function DashboardChef() {
@@ -65,11 +66,27 @@ export default function DashboardChef() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Prochaines étapes</CardTitle>
+            <CardTitle>Actions rapides</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Les modules Budgets et OP seront disponibles dans les prochaines étapes (Modules 2 & 3).
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link
+                href="/budget/create"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                Créer un Plan d'Action Annuel (PAA)
+              </Link>
+              <Link
+                href="/budget"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+              >
+                <Wallet className="w-5 h-5" />
+                Voir mes budgets
+              </Link>
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              Créez et gérez les budgets annuels (PAA) pour votre centre de santé.
             </p>
           </CardContent>
         </Card>

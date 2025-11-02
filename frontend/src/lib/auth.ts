@@ -16,9 +16,18 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Dans Docker, utiliser le nom du service 'backend' au lieu de 'localhost'
-          const apiUrl = 'http://backend:3001/api';
-          const response = await fetch(`${apiUrl}/auth/login`, {
+          // Déterminer l'URL de l'API selon l'environnement
+          // Cette fonction s'exécute côté serveur (dans l'API route Next.js)
+          // Utiliser NEXT_PUBLIC_API_URL si disponible, sinon localhost
+          // Pour Docker, l'URL devrait être définie dans les variables d'environnement
+          const apiUrl = process.env.API_URL_SERVER || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          
+          // Normaliser l'URL (supprimer /api à la fin si présent)
+          const normalizedUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+          
+          console.log('[Auth] Tentative de connexion à:', normalizedUrl);
+          
+          const response = await fetch(`${normalizedUrl}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -30,6 +39,8 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!response.ok) {
+            const errorText = await response.text().catch(() => '');
+            console.error('[Auth] Erreur HTTP:', response.status, response.statusText, errorText);
             return null;
           }
 
@@ -48,8 +59,13 @@ export const authOptions: NextAuthOptions = {
           }
 
           return null;
-        } catch (error) {
-          console.error('Auth error:', error);
+        } catch (error: any) {
+          console.error('[Auth] Erreur de connexion:', error?.message || error);
+          console.error('[Auth] Détails:', {
+            code: error?.code,
+            cause: error?.cause,
+            stack: error?.stack,
+          });
           return null;
         }
       },

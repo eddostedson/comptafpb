@@ -10,10 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
+import { BackendStatusIndicator } from '@/components/backend-status-indicator';
+import { useBackendStatus } from '@/hooks/use-backend-status';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { isOnline } = useBackendStatus(10000);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -31,14 +34,24 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        toast.error('Identifiants invalides');
+        // Afficher un message d'erreur plus détaillé
+        let errorMessage = 'Identifiants invalides';
+        if (result.error === 'CredentialsSignin') {
+          errorMessage = 'Email ou mot de passe incorrect';
+        } else if (result.error === 'Configuration') {
+          errorMessage = 'Erreur de configuration. Vérifiez que le backend est démarré sur le port 3001';
+        } else {
+          errorMessage = result.error;
+        }
+        toast.error(errorMessage);
       } else {
         toast.success('Connexion réussie !');
-        router.push('/dashboard');
+        router.push('/home');
         router.refresh();
       }
-    } catch (error) {
-      toast.error('Une erreur est survenue');
+    } catch (error: any) {
+      console.error('Erreur de connexion:', error);
+      toast.error('Une erreur est survenue. Vérifiez que le backend est démarré.');
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +70,10 @@ export default function LoginPage() {
           <CardDescription className="text-center">
             Comptabilité de Gestion des Centres de Santé
           </CardDescription>
+          {/* Indicateur de statut Backend */}
+          <div className="flex justify-center mt-4">
+            <BackendStatusIndicator variant="default" showLabel={true} />
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,8 +101,8 @@ export default function LoginPage() {
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Connexion...' : 'Se connecter'}
+            <Button type="submit" className="w-full" disabled={isLoading || !isOnline}>
+              {isLoading ? 'Connexion...' : isOnline ? 'Se connecter' : 'Backend hors ligne'}
             </Button>
           </form>
 

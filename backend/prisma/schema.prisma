@@ -1,6 +1,3 @@
-// Prisma Schema - CGCS (Comptabilité de Gestion des Centres de Santé)
-// Module 1: Authentification & Gestion des rôles
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,9 +7,274 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ========================================
-// AUTHENTIFICATION & RÔLES
-// ========================================
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  nom          String
+  prenom       String
+  telephone    String?
+  role         RoleType
+  statut       StatutUser    @default(ACTIF)
+  centreId     String?
+  regisseurId  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lastLogin    DateTime?
+  code         String?       @unique
+  auditActions AuditAction[]
+  centre       Centre?       @relation(fields: [centreId], references: [id])
+  regisseur    Regisseur?    @relation(fields: [regisseurId], references: [id])
+
+  @@index([email])
+  @@index([code])
+  @@index([centreId])
+  @@index([regisseurId])
+  @@index([role])
+  @@map("users")
+}
+
+model Regisseur {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  nom       String
+  prenom    String
+  email     String   @unique
+  telephone String?
+  region    String
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  centres   Centre[]
+  users     User[]
+
+  @@index([code])
+  @@index([region])
+  @@map("regisseurs")
+}
+
+model Centre {
+  id                String             @id @default(uuid())
+  code              String             @unique
+  nom               String
+  adresse           String
+  commune           String
+  region            String?
+  telephone         String?
+  email             String?
+  type              String
+  niveau            String
+  actif             Boolean            @default(true)
+  regisseurId       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  chefLieu          String?
+  departement       String?
+  sousPrefecture    String?
+  province          String?
+  activityTemplates ActivityTemplate[]
+  budgets           Budget[]
+  regisseur         Regisseur?         @relation(fields: [regisseurId], references: [id])
+  users             User[]
+
+  @@index([code])
+  @@index([regisseurId])
+  @@index([region])
+  @@index([type])
+  @@map("centres")
+}
+
+model Budget {
+  id                String            @id @default(uuid())
+  code              String            @unique
+  nom               String
+  description       String?
+  annee             Int
+  type              TypeBudget
+  statut            StatutBudget      @default(BROUILLON)
+  montantTotal      Decimal           @default(0) @db.Decimal(15, 2)
+  montantValide     Decimal           @default(0) @db.Decimal(15, 2)
+  montantDepense    Decimal           @default(0) @db.Decimal(15, 2)
+  montantRestant    Decimal           @default(0) @db.Decimal(15, 2)
+  centreId          String
+  creePar           String
+  validePar         String?
+  valideLe          DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  centre            Centre            @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  lignesBudgetaires LigneBudgetaire[]
+  sourcesRecettes   SourceRecette[]
+
+  @@index([centreId])
+  @@index([annee])
+  @@index([type])
+  @@index([statut])
+  @@index([creePar])
+  @@map("budgets")
+}
+
+model SourceRecette {
+  id        String            @id @default(uuid())
+  type      TypeSourceRecette
+  nature    String?
+  montant   Decimal           @db.Decimal(15, 2)
+  budgetId  String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  budget    Budget            @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+  @@index([type])
+  @@map("sources_recettes")
+}
+
+model LigneBudgetaire {
+  id                String                   @id @default(uuid())
+  code              String?
+  libelle           String?
+  description       String?
+  montantPrevu      Decimal                  @default(0) @db.Decimal(15, 2)
+  montantValide     Decimal                  @default(0) @db.Decimal(15, 2)
+  montantEngage     Decimal                  @default(0) @db.Decimal(15, 2)
+  montantPaye       Decimal                  @default(0) @db.Decimal(15, 2)
+  montantRestant    Decimal                  @default(0) @db.Decimal(15, 2)
+  chapitre          String?
+  section           String?
+  paragraphe        String?
+  article           String?
+  sousArticle       String?
+  budgetId          String
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  activiteCle       String
+  coutUnitaire      Decimal                  @db.Decimal(15, 2)
+  frequence         Decimal                  @default(1) @db.Decimal(10, 2)
+  libelleNbe        String?
+  ligneNbe          String?
+  montantActivite   Decimal                  @db.Decimal(15, 2)
+  nbeLineId         String?
+  quantite          Decimal                  @default(1) @db.Decimal(10, 2)
+  sourceFinancement SourceFinancement
+  typeMoyens        String
+  correspondances   CorrespondanceActivite[]
+  budget            Budget                   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  nbeLine           NbeLine?                 @relation(fields: [nbeLineId], references: [id])
+
+  @@index([budgetId])
+  @@index([sourceFinancement])
+  @@index([ligneNbe])
+  @@index([nbeLineId])
+  @@map("lignes_budgetaires")
+}
+
+model CorrespondanceActivite {
+  id                String          @id @default(uuid())
+  codeActivite      String
+  nomActivite       String
+  description       String?
+  categorie         String?
+  sousCategorie     String?
+  ligneBudgetaireId String
+  pourcentage       Decimal?        @db.Decimal(5, 2)
+  montantMax        Decimal?        @db.Decimal(15, 2)
+  priorite          Int             @default(1)
+  valide            Boolean         @default(false)
+  validePar         String?
+  valideLe          DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  ligneBudgetaire   LigneBudgetaire @relation(fields: [ligneBudgetaireId], references: [id], onDelete: Cascade)
+
+  @@index([codeActivite])
+  @@index([ligneBudgetaireId])
+  @@index([categorie])
+  @@index([valide])
+  @@map("correspondances_activites")
+}
+
+model AuditAction {
+  id          String     @id @default(uuid())
+  userId      String
+  action      ActionType
+  entity      String
+  entityId    String?
+  description String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_actions")
+}
+
+model NbeLine {
+  id                String             @id @default(uuid())
+  ligne             String?
+  libelle           String
+  objetDepense      String?
+  categorie         String
+  sousCategorie     String?
+  isHeader          Boolean            @default(false)
+  isHighlighted     Boolean            @default(false)
+  ordre             Int?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  activityTemplates ActivityTemplate[]
+  lignesBudgetaires LigneBudgetaire[]
+
+  @@index([ligne])
+  @@index([categorie])
+  @@index([sousCategorie])
+  @@map("nbe_lines")
+}
+
+model ActivityTemplate {
+  id                String             @id @default(uuid())
+  activiteCle       String
+  typeMoyens        String
+  ligneNbe          String?
+  libelleNbe        String?
+  nbeLineId         String?
+  sourceFinancement SourceFinancement?
+  centreId          String?
+  utilisationCount  Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  centre            Centre?            @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  nbeLine           NbeLine?           @relation(fields: [nbeLineId], references: [id])
+
+  @@index([centreId])
+  @@index([activiteCle])
+  @@index([typeMoyens])
+  @@index([ligneNbe])
+  @@map("activity_templates")
+}
+
+model DivisionAdministrative {
+  id             String   @id @default(uuid())
+  code           String?  @unique
+  region         String?
+  departement    String?
+  chefLieu       String?
+  sousPrefecture String?
+  commune        String?
+  actif          Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([region])
+  @@index([departement])
+  @@index([chefLieu])
+  @@index([sousPrefecture])
+  @@index([commune])
+  @@map("divisions_administratives")
+}
 
 enum RoleType {
   ADMIN
@@ -26,102 +288,40 @@ enum StatutUser {
   SUSPENDU
 }
 
-// Table principale des utilisateurs
-model User {
-  id        String      @id @default(uuid())
-  email     String      @unique
-  password  String      // Hash bcrypt
-  nom       String
-  prenom    String
-  telephone String?
-  role      RoleType
-  statut    StatutUser  @default(ACTIF)
-  
-  // Relations hiérarchiques
-  centreId    String?
-  centre      Centre?     @relation(fields: [centreId], references: [id], onDelete: SetNull)
-  
-  regisseurId String?
-  regisseur   Regisseur?  @relation(fields: [regisseurId], references: [id], onDelete: SetNull)
-  
-  // Métadonnées
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  lastLogin DateTime?
-  
-  // Audit logs (relations)
-  auditActions AuditAction[]
-  
-  @@index([email])
-  @@index([centreId])
-  @@index([regisseurId])
-  @@index([role])
-  @@map("users")
+enum TypeBudget {
+  FONCTIONNEMENT
+  INVESTISSEMENT
+  RESSOURCES_HUMAINES
+  EQUIPEMENT
+  MAINTENANCE
+  FORMATION
 }
 
-// Régisseurs (supervisent 20-25 centres)
-model Regisseur {
-  id          String   @id @default(uuid())
-  code        String   @unique // Ex: REG-001
-  nom         String
-  prenom      String
-  email       String   @unique
-  telephone   String?
-  region      String   // Zone géographique
-  actif       Boolean  @default(true)
-  
-  // Relations
-  centres     Centre[]
-  users       User[]   // Comptes utilisateurs liés
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@index([code])
-  @@index([region])
-  @@map("regisseurs")
+enum StatutBudget {
+  BROUILLON
+  EN_ATTENTE_VALIDATION
+  VALIDE
+  REJETE
+  ARCHIVE
 }
 
-// Centres de santé (2500+)
-model Centre {
-  id            String   @id @default(uuid())
-  code          String   @unique // Ex: CS-001
-  nom           String
-  adresse       String
-  commune       String
-  province      String
-  region        String
-  telephone     String?
-  email         String?
-  type          String   // Public, Privé, Confessionnel
-  niveau        String   // CS, CMA, Hôpital
-  actif         Boolean  @default(true)
-  
-  // Hiérarchie
-  regisseurId   String?
-  regisseur     Regisseur? @relation(fields: [regisseurId], references: [id], onDelete: SetNull)
-  
-  // Relations
-  users         User[]
-  
-  // Données financières (à venir dans modules suivants)
-  // budgets       Budget[]
-  // ordresPaiement OrdrePaiement[]
-  // comptesTresorerie CompteTresorerie[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  @@index([code])
-  @@index([regisseurId])
-  @@index([region])
-  @@index([type])
-  @@map("centres")
+enum TypeSourceRecette {
+  BE
+  RESSOURCES_PROPRES
+  PTF
+  DONS_LEGS
+  FBP
+  CMU
+  SOLDE_BANCAIRE
 }
 
-// ========================================
-// AUDIT & TRAÇABILITÉ
-// ========================================
+enum SourceFinancement {
+  FBP
+  CMU
+  RP
+  BE
+  AUTRES
+}
 
 enum ActionType {
   LOGIN
@@ -134,26 +334,3 @@ enum ActionType {
   EXPORT
   IMPORT
 }
-
-model AuditAction {
-  id          String     @id @default(uuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  action      ActionType
-  entity      String     // Ex: "Budget", "OrdrePaiement"
-  entityId    String?
-  description String?
-  metadata    Json?      // Données supplémentaires
-  ipAddress   String?
-  userAgent   String?
-  
-  createdAt   DateTime   @default(now())
-  
-  @@index([userId])
-  @@index([action])
-  @@index([entity])
-  @@index([createdAt])
-  @@map("audit_actions")
-}
-

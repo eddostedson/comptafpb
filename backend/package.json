@@ -21,13 +21,17 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "nbe:import-excel": "ts-node prisma/import-nbe-excel.ts",
+    "admin:import-villes": "ts-node prisma/import-villesci.ts",
+    "admin:cleanup-duplicates": "ts-node prisma/cleanup-duplicates-divisions.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^10.3.0",
     "@nestjs/jwt": "^10.2.0",
+    "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/swagger": "^7.1.17",
@@ -44,7 +48,8 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
-    "winston": "^3.11.0"
+    "winston": "^3.11.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.1",

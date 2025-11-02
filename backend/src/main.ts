@@ -41,11 +41,42 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3001;
+  
+  // Gestion gracieuse de l'arrêt
+  process.on('SIGTERM', async () => {
+    console.log('🛑 SIGTERM reçu, arrêt gracieux du serveur...');
+    await app.close();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    console.log('🛑 SIGINT reçu, arrêt gracieux du serveur...');
+    await app.close();
+    process.exit(0);
+  });
+
+  // Gestion des erreurs non capturées (empêche le crash immédiat)
+  process.on('uncaughtException', (error) => {
+    console.error('❌ Erreur non capturée:', error);
+    console.error('💡 Le serveur continue de fonctionner. Utilisez un gestionnaire de processus (PM2/keep-alive) pour redémarrer automatiquement.');
+    // Ne pas arrêter le processus - laisser PM2/nodemon/keep-alive le gérer
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Promesse rejetée non gérée:', reason);
+    console.error('💡 Le serveur continue de fonctionner. Vérifiez les logs pour plus de détails.');
+    // Ne pas arrêter le processus
+  });
+
   await app.listen(port);
   
   console.log(`🚀 Backend CGCS running on: http://localhost:${port}`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
+  console.log(`💚 Backend prêt et en ligne`);
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('❌ Erreur fatale lors du démarrage:', error);
+  process.exit(1);
+});
 

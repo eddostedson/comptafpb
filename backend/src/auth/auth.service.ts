@@ -79,8 +79,13 @@ export class AuthService {
       },
     });
 
-    // Logger l'action
-    await this.logAuditAction(user.id, 'CREATE', 'User', user.id, 'Création de compte');
+    // Logger l'action (ne pas bloquer l'inscription si le logging échoue)
+    try {
+      await this.logAuditAction(user.id, 'CREATE', 'User', user.id, 'Création de compte');
+    } catch (error) {
+      console.error('Erreur lors du logging de l\'action d\'audit:', error);
+      // Ne pas bloquer l'inscription si le logging échoue
+    }
 
     return {
       message: 'Compte créé avec succès',
@@ -179,7 +184,9 @@ export class AuthService {
             code: true,
             nom: true,
             commune: true,
-            province: true,
+            sousPrefecture: true,
+            chefLieu: true,
+            departement: true,
             region: true,
           },
         },

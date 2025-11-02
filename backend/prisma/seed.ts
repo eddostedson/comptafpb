@@ -136,6 +136,7 @@ async function main() {
   
   for (let i = 0; i < 20; i++) {
     const centre = centres[i];
+    const codeChef = `CC-${String(i + 1).padStart(3, '0')}`; // Format: CC-001, CC-002, etc.
     const user = await prisma.user.create({
       data: {
         email: `chef${i + 1}@cgcs.cg`,
@@ -143,6 +144,7 @@ async function main() {
         nom: `Chef`,
         prenom: `Centre-${i + 1}`,
         telephone: centre.telephone,
+        code: codeChef,
         role: RoleType.CHEF_CENTRE,
         statut: StatutUser.ACTIF,
         centreId: centre.id,

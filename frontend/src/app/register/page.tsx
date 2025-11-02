@@ -32,8 +32,28 @@ export default function RegisterPage() {
       toast.success('Compte créé avec succès !');
       router.push('/login');
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Une erreur est survenue';
-      toast.error(message);
+      console.error('Erreur lors de la création du compte:', error);
+      
+      let message = 'Une erreur est survenue lors de la création du compte';
+      
+      if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        // Gérer les erreurs de validation
+        if (Array.isArray(error.response.data.error)) {
+          message = error.response.data.error.join(', ');
+        } else {
+          message = error.response.data.error;
+        }
+      } else if (error.message) {
+        message = error.message;
+      } else if (!error.response) {
+        message = 'Impossible de contacter le serveur. Vérifiez que le backend est démarré.';
+      }
+      
+      toast.error(message, {
+        duration: 5000,
+      });
     } finally {
       setIsLoading(false);
     }

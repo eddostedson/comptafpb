@@ -1,0 +1,659 @@
+[
+  {
+    "ligne": null,
+    "libelle": "COMPTES d' IMMOBILISATIONS",
+    "objetDepense": null,
+    "categorie": "IMMOBILISATIONS",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 1
+  },
+  {
+    "ligne": "2131",
+    "libelle": "Conception de systèmes d'organisation - progiciels",
+    "objetDepense": "",
+    "categorie": "IMMOBILISATIONS",
+    "sousCategorie": "INCORPORELLES",
+    "isHeader": false,
+    "ordre": 2
+  },
+  {
+    "ligne": "2192",
+    "libelle": "Autres immobilisations incorporelles",
+    "objetDepense": "",
+    "categorie": "IMMOBILISATIONS",
+    "sousCategorie": "INCORPORELLES",
+    "isHeader": false,
+    "ordre": 3
+  },
+  {
+    "ligne": null,
+    "libelle": "Acquisitions et aménagements des sols et sous- sols",
+    "objetDepense": null,
+    "categorie": "SOLS",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 4
+  },
+  {
+    "ligne": "2213",
+    "libelle": "Constructions de clôture",
+    "objetDepense": "Construction de clôture autour du centre de santé",
+    "categorie": "SOLS",
+    "sousCategorie": "CLOTURES",
+    "isHeader": false,
+    "ordre": 5
+  },
+  {
+    "ligne": null,
+    "libelle": "Acquisitions, constructions et grosses réparations des immeubles",
+    "objetDepense": null,
+    "categorie": "IMMEUBLES",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 6
+  },
+  {
+    "ligne": "2311",
+    "libelle": "Bâtiments administratifs à usage de bureau",
+    "objetDepense": "",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "BATIMENTS",
+    "isHeader": false,
+    "ordre": 7
+  },
+  {
+    "ligne": "2343",
+    "libelle": "Réseaux d'eau",
+    "objetDepense": "Travaux d'adduction d'eau potable dans le centre de santé",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "RESEAUX",
+    "isHeader": false,
+    "ordre": 8
+  },
+  {
+    "ligne": "2344",
+    "libelle": "Réseaux d'assainissement",
+    "objetDepense": "Travaux de curage et d'assainissement",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "RESEAUX",
+    "isHeader": false,
+    "ordre": 9
+  },
+  {
+    "ligne": "2345",
+    "libelle": "Réseaux d'électricité",
+    "objetDepense": "Travaux de mise en place de réseaux d'électricité dans le centre de santé",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "RESEAUX",
+    "isHeader": false,
+    "ordre": 10
+  },
+  {
+    "ligne": "2361",
+    "libelle": "Réseaux informatiques",
+    "objetDepense": "Travaux de cablage de reseaux informatiques",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "RESEAUX",
+    "isHeader": false,
+    "ordre": 11
+  },
+  {
+    "ligne": "2394",
+    "libelle": "Agencement, aménagement, installation de bureau",
+    "objetDepense": "",
+    "categorie": "IMMEUBLES",
+    "sousCategorie": "AMENAGEMENTS",
+    "isHeader": false,
+    "ordre": 12
+  },
+  {
+    "ligne": null,
+    "libelle": "Acquisitions et grosses réparations du matériel et mobilier",
+    "objetDepense": null,
+    "categorie": "MATERIEL",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 13
+  },
+  {
+    "ligne": "2411",
+    "libelle": "Mobilier et matériel de bureau (autre qu'informatique)",
+    "objetDepense": "Acquisition de lave-main, chaises visiteurs, bancs, lits, matelas, tableaux padex, Fauteuil agent, Armoire de rangement en bois à 2 portes, Armoire vestiaire en bois, Banc bois avec dossier, Bureau simple avec caisson, Bureau double caisson, Bureau avec retour, Classeur à dossiers suspendus à 4 tiroirs, Tabouret médical, Fauteil ambulatoire, Fauteuil de prélèvement, Chariot de soins, Lampe d'examen général, Table d'examen général, Lampe d'examen gynécologique, Table d'examen génécologique, Table d'accouchement, Table de toilette bébé, Marchepied ou Escabeau à 2 marches, Paravents, Table à instruments, Table à pansement, Poubelle avec couvercle et commande au pied, Lampe torche, Réfrigérateur, climatiseur, télévision, etc.",
+    "categorie": "MATERIEL",
+    "sousCategorie": "BUREAU",
+    "isHeader": false,
+    "ordre": 14
+  },
+  {
+    "ligne": "2419",
+    "libelle": "Autres Mobilier et materiel de logement et de bureau (autre qu'informatique)",
+    "objetDepense": "Acquisition de canapés, fauteuils, étagères, meubles TV, portes, tables à manger, armoires de dressing, placards, baignoires, cabines de douche, porte-manteaux, lustres, miroirs, lavabos, toilettes (WC), cuisinières à gaz avec four, etc.",
+    "categorie": "MATERIEL",
+    "sousCategorie": "LOGEMENT",
+    "isHeader": false,
+    "ordre": 15
+  },
+  {
+    "ligne": "2421",
+    "libelle": "Matériel informatique",
+    "objetDepense": "Ordinateurs, imprimantes, tables d'ordinateur, ordinateurs de bureau, ordinateurs portables et tablettes ; serveurs, équipements de réseau ; téléphones IP et équipements de télécommunication ; imprimantes ; consommables et supports ; périphériques et accessoires ; logiciels et licences",
+    "categorie": "MATERIEL",
+    "sousCategorie": "INFORMATIQUE",
+    "isHeader": false,
+    "ordre": 16
+  },
+  {
+    "ligne": "2422",
+    "libelle": "Vidéoprojecteur",
+    "objetDepense": "Acquisition de vidéoprojecteurs et accessoires",
+    "categorie": "MATERIEL",
+    "sousCategorie": "INFORMATIQUE",
+    "isHeader": false,
+    "ordre": 17
+  },
+  {
+    "ligne": "2429",
+    "libelle": "Autres Materiels informatiques de bureau",
+    "objetDepense": "Souris, claviers, clés USB, mémoire externe, équipements sonores (microphones), unités centrales et/ou leurs composants, webcams, connexions internet, écrans",
+    "categorie": "MATERIEL",
+    "sousCategorie": "INFORMATIQUE",
+    "isHeader": false,
+    "ordre": 18
+  },
+  {
+    "ligne": "2433",
+    "libelle": "Véhicules à 2 roues et tricycles",
+    "objetDepense": "Acquisition de motos, vélos, tricycles",
+    "categorie": "MATERIEL",
+    "sousCategorie": "TRANSPORT",
+    "isHeader": false,
+    "ordre": 19
+  },
+  {
+    "ligne": null,
+    "libelle": "COMPTES DE CHARGES",
+    "objetDepense": null,
+    "categorie": "CHARGES",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 20
+  },
+  {
+    "ligne": null,
+    "libelle": "Achats de biens",
+    "objetDepense": null,
+    "categorie": "CHARGES",
+    "sousCategorie": "ACHATS",
+    "isHeader": true,
+    "ordre": 21
+  },
+  {
+    "ligne": null,
+    "libelle": "Matières, matériels et fournitures",
+    "objetDepense": null,
+    "categorie": "CHARGES",
+    "sousCategorie": "FOURNITURES",
+    "isHeader": true,
+    "ordre": 22
+  },
+  {
+    "ligne": "2444",
+    "libelle": "Matériel bio-médical",
+    "objetDepense": "Nébuliseur, Accessoires et consommables spiromètre et débitmètre, Appareils de rééducation respiratoire, Lampe d'examen, Lampe de lecture et de soins, Lampe loupe, Lunette loupe, Lampe de Wood, Accessoires pour lampe d'examen, Plafonnier médical, Pied roulant pour lampe loupe, Pied roulant télescopique LID Eckairage, etc.",
+    "categorie": "CHARGES",
+    "sousCategorie": "MEDICAL",
+    "isHeader": false,
+    "ordre": 23
+  },
+  {
+    "ligne": "6011",
+    "libelle": "Achats de petits matériels, fournitures de bureau et documentation",
+    "objetDepense": "Stylos, enveloppe, papier rame, crayon, marqueur, bloc note, agenda, gomme, pot de colle, chemise à rabat, chemise cartonnée, classeur, traceuse, etc.",
+    "categorie": "CHARGES",
+    "sousCategorie": "BUREAU",
+    "isHeader": false,
+    "ordre": 24
+  },
+  {
+    "ligne": "6012",
+    "libelle": "Achats de carburants et lubrifiants",
+    "objetDepense": "Carburant pour les motos de service et l'ambulance, groupe électrogène, lampe à pétrole",
+    "categorie": "CHARGES",
+    "sousCategorie": "CARBURANT",
+    "isHeader": false,
+    "ordre": 25
+  },
+  {
+    "ligne": "6014",
+    "libelle": "Achats de fournitures et consommables pour le matériel informatique",
+    "objetDepense": "Cartouche d'encre, souris, câbles, clavier, disque dur, clé USB, clé internet",
+    "categorie": "CHARGES",
+    "sousCategorie": "INFORMATIQUE",
+    "isHeader": false,
+    "ordre": 26
+  },
+  {
+    "ligne": "6015",
+    "libelle": "Achats de petits matériels et fournitures techniques",
+    "objetDepense": "Boite de pansement, tensiomètre, ciseaux, registres des consultations, achat de poubelles, râteaux, boîte d'accouchement, boîte d'épisiotomie, carnet de consultation, ventilateurs, brasseurs, stethoscope, bouteille de gaz et recharge de gaz",
+    "categorie": "CHARGES",
+    "sousCategorie": "TECHNIQUE",
+    "isHeader": false,
+    "ordre": 27
+  },
+  {
+    "ligne": "6017",
+    "libelle": "Achats d'habillement (hors personnel)",
+    "objetDepense": "Draps (classiques, plastifiés, Alèses jetables médicales, non toisés, spécifiques), rideaux, vêtement de malade",
+    "categorie": "CHARGES",
+    "sousCategorie": "HABILLEMENT",
+    "isHeader": false,
+    "ordre": 28
+  },
+  {
+    "ligne": "6018",
+    "libelle": "Achats de produits pharmaceutiques, médicaux et vétérinaires",
+    "objetDepense": "Gants, seringues, Bandes, Coton/compresse, sparadrap, Soins pansements (Bandes de soins, Sets de pansements, Injesctions médicales (Aiguilles médicales, Cathéter/Perfusion, Matériels de prélèvements), Alcool/Sérum, Bistouris et Lames, Gel Echo/Lubrifiant, Protège sondes, Produits vétérinaires (ACTI DOXY 5, ACTI-METHOXINE, ACTI-STRPTO, ACTI-TETRA B) etc.",
+    "categorie": "CHARGES",
+    "sousCategorie": "PHARMACEUTIQUE",
+    "isHeader": false,
+    "ordre": 29
+  },
+  {
+    "ligne": "6019",
+    "libelle": "Autres achats de fournitures, fournitures d'hygiène et de santé",
+    "objetDepense": "Désinfectants environnement (Désinfectants surodorants, Désinfectants de surface, Désinfectants sol, Ligettes désinfectantes). Désinfection instruments (Désinfection à froid, Désinfectants machines, Bacs de décontamination, nettoyants pré-désinfectants). Désinfection nettoyage mains (Gels alcooliques, Distributeurs et supports, Savons doux et crèmes pour les mains). Désinfection linges (Lessives, Assouplissants). Protection médicales (Masques de protection, Surchaussures/Sabots)",
+    "categorie": "CHARGES",
+    "sousCategorie": "HYGIENE",
+    "isHeader": false,
+    "ordre": 30
+  },
+  {
+    "ligne": "6051",
+    "libelle": "Branchements et raccordement des compteurs",
+    "objetDepense": "Frais de branchement et raccordement de compteur d'eau Sodeci et électricité CIE",
+    "categorie": "SERVICES",
+    "sousCategorie": "UTILITAIRES",
+    "isHeader": false,
+    "ordre": 31
+  },
+  {
+    "ligne": "6052",
+    "libelle": "Abonnements et consommation d'eau",
+    "objetDepense": "Frais d'abonnements et consommation eau Sodeci",
+    "categorie": "SERVICES",
+    "sousCategorie": "UTILITAIRES",
+    "isHeader": false,
+    "ordre": 32
+  },
+  {
+    "ligne": "6053",
+    "libelle": "Abonnements et consommation d'électricité",
+    "objetDepense": "Abonnements et consommation électricité CIE",
+    "categorie": "SERVICES",
+    "sousCategorie": "UTILITAIRES",
+    "isHeader": false,
+    "ordre": 33
+  },
+  {
+    "ligne": null,
+    "libelle": "Acquisitions de services",
+    "objetDepense": null,
+    "categorie": "SERVICES",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 34
+  },
+  {
+    "ligne": "6111",
+    "libelle": "Frais de transport des agents en mission à l'intérieur",
+    "objetDepense": "Frais de transport payés à des agents en mission à l'intereieur pour le compte du centre de santé",
+    "categorie": "SERVICES",
+    "sousCategorie": "TRANSPORT",
+    "isHeader": false,
+    "ordre": 35
+  },
+  {
+    "ligne": "6112",
+    "libelle": "Indemnités de mission à l'intérieur",
+    "objetDepense": "Frais de mission payé à des agents en mission à l'intereieur",
+    "categorie": "SERVICES",
+    "sousCategorie": "MISSIONS",
+    "isHeader": false,
+    "ordre": 36
+  },
+  {
+    "ligne": "6123",
+    "libelle": "Location machines et matériel technique",
+    "objetDepense": "Location de tondeuse, vidéo projecteur, appareil photo, ordinateur etc...",
+    "categorie": "SERVICES",
+    "sousCategorie": "LOCATION",
+    "isHeader": false,
+    "ordre": 37
+  },
+  {
+    "ligne": "6124",
+    "libelle": "Locations de matériel informatique",
+    "objetDepense": "Location de serveurs, d'ordinateurs fixes, d'ordinateurs portables et tablettes, d'équipements de réseau (Routeurs, Pare-feu, commutateurs réseau ou switch, Point d'accès sans fil, répéteur, etc.), de téléphone IP et équipements de télécommunication, d'imprimantes, de périfériques et accessoires, de logiciels et licences etc.",
+    "categorie": "SERVICES",
+    "sousCategorie": "LOCATION",
+    "isHeader": false,
+    "ordre": 38
+  },
+  {
+    "ligne": "6127",
+    "libelle": "Locations de véhicules",
+    "objetDepense": "Location de véhicule pour effectuer des activités, probablement les regulateurs",
+    "categorie": "SERVICES",
+    "sousCategorie": "LOCATION",
+    "isHeader": false,
+    "ordre": 39
+  },
+  {
+    "ligne": "6129",
+    "libelle": "Autres locations",
+    "objetDepense": "ci-dessus (ex : location de chaises, bâches, sonorisation pour des activités ponctuelles de vaccination ou de sensibilisation)",
+    "categorie": "SERVICES",
+    "sousCategorie": "LOCATION",
+    "isHeader": false,
+    "ordre": 40
+  },
+  {
+    "ligne": "6141",
+    "libelle": "Entretien des locaux (y compris matériel et founitures d'entretien)",
+    "objetDepense": "Réfection de clôture, fosse à ordures, petite construction, petite réhabilitation, peinture des murs et ouvertures, aménagement de l'espace, nettoyage des locaux, planting des arbres ou fleurs etc. Fosses à placent, incinérateur, fosse à brûlure",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 41
+  },
+  {
+    "ligne": "6143",
+    "libelle": "Entretien des installations électriques, climatiseurs, sanitaires et plomberies",
+    "objetDepense": "Maintenance des climatiseurs, travaux de plomberie et d'électricité",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 42
+  },
+  {
+    "ligne": "6144",
+    "libelle": "Entretien et maintenance des mobiliers et matériels informatiques",
+    "objetDepense": "Réparation d'une table d'ordinateur, installation ou mise à jour des logiciels ou d'anti - virus. Entretien et maintenance de tout ce qui peut être considéré",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 43
+  },
+  {
+    "ligne": "6146",
+    "libelle": "Entretien et maintenance des mobiliers et matériels (sauf informatiques)",
+    "objetDepense": "Reparation de tables, lit, chaise, fauteuil, armoire, étagère etc... Entretien et maintenance de tout ce qui peut être considéré comme mobiliers et matériels de bureau et/ou de logement (lignes 2411 et 2419)",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 44
+  },
+  {
+    "ligne": "6147",
+    "libelle": "Entretien et réparation des véhicules, pneumatiques",
+    "objetDepense": "Vidange, achat de pneu, réparation du véhicule, réparation des tondeuses de la cour",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 45
+  },
+  {
+    "ligne": "6149",
+    "libelle": "Autres dépenses d'entretien et de maintenance",
+    "objetDepense": "Reparation de matériels techniques (tables d'accouchement, tensiomêtre, scanner etc... Tout entretien et maintenance des mobiliers et matériels ne figurant pas les lignes d'entretien précédentes (6141, 6144, 6146, 6147)",
+    "categorie": "SERVICES",
+    "sousCategorie": "ENTRETIEN",
+    "isHeader": false,
+    "ordre": 46
+  },
+  {
+    "ligne": "6175",
+    "libelle": "Publications",
+    "objetDepense": "Frais d'impression, de parution dans la presse écrite ou audiovisuelle, de mise en vente d'une œuvre imprimée (journal, livre, etc.)",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 47
+  },
+  {
+    "ligne": "6177",
+    "libelle": "Frais de colloque, séminaires, conférences",
+    "objetDepense": "Frais de location de la salle de réunion, d'hébergement des participants, des billets d'avions des participants, des perdiems ou frais de séjours des participants, de transports des lieux de résidence des participants au lieu de réunion, etc.",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 48
+  },
+  {
+    "ligne": "6181",
+    "libelle": "Abonnements et consommations de téléphone, et d'autres télécommunications",
+    "objetDepense": "Rechargement des unités pour la carte SIM: dans le cas de recherche actif des cas, relance téléphone pour les RDV de consultations CPN4, CPON, SP3,PTME",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 49
+  },
+  {
+    "ligne": "6183",
+    "libelle": "Abonnements et consommations Internet",
+    "objetDepense": "Frais d'abonnements et consommation internet",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 50
+  },
+  {
+    "ligne": "6184",
+    "libelle": "Affanchissement du courrier et autres frais de correspondance",
+    "objetDepense": "Frais de Transmission de lettre suite à l'organisation d'une stratégie avancée dans les villages",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 51
+  },
+  {
+    "ligne": "6187",
+    "libelle": "Communiqués de presse, radio, télévision et frais de publicité",
+    "objetDepense": "Panneaux signalétiques, canal horizon, etc.",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 52
+  },
+  {
+    "ligne": "6189",
+    "libelle": "Autres dépenses de communication",
+    "objetDepense": "les frais de conception des éléments promotionnels (affiches, flyers, plaquettes, kakemono, cadeaux publicitaires, etc.)",
+    "categorie": "SERVICES",
+    "sousCategorie": "COMMUNICATION",
+    "isHeader": false,
+    "ordre": 53
+  },
+  {
+    "ligne": null,
+    "libelle": "Autres services",
+    "objetDepense": null,
+    "categorie": "SERVICES",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 54
+  },
+  {
+    "ligne": "6221",
+    "libelle": "Rémunérations de prestations extérieures",
+    "objetDepense": "Pour Plaidoyer et mobilisation sociale et communautaire, organiser des rencontres d'échange avec les autorités administratives et leaders communautaires",
+    "categorie": "SERVICES",
+    "sousCategorie": "PRESTATIONS",
+    "isHeader": false,
+    "ordre": 55
+  },
+  {
+    "ligne": "6222",
+    "libelle": "Honoraires et frais annexes",
+    "objetDepense": "Honoraires médicaux, honoraires d'architecte, d'avocat et/ou conseils juridiques, de géomètre, de notaires, des médecins et dentistes, des paramédicaux",
+    "categorie": "SERVICES",
+    "sousCategorie": "HONORAIRES",
+    "isHeader": false,
+    "ordre": 56
+  },
+  {
+    "ligne": "6224",
+    "libelle": "Frais de formation au profit des tiers",
+    "objetDepense": "",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 57
+  },
+  {
+    "ligne": "6225",
+    "libelle": "Services extérieurs de gardiennage",
+    "objetDepense": "Service de gardiennage",
+    "categorie": "SERVICES",
+    "sousCategorie": "SECURITE",
+    "isHeader": false,
+    "ordre": 58
+  },
+  {
+    "ligne": "6227",
+    "libelle": "Frais d'audit et contrôle",
+    "objetDepense": "Frais de préparation de l'audit (apprêter les documents à mettre à la disposition des auditeurs) Honoraires des auditeurs à la charges de offre de soins au centre de santé, offre de soins en stratégie avancée, offre de soins de santé en activité foraine, activités de masse",
+    "categorie": "SERVICES",
+    "sousCategorie": "AUDIT",
+    "isHeader": false,
+    "ordre": 59
+  },
+  {
+    "ligne": "6229",
+    "libelle": "Autres prestations de services",
+    "objetDepense": "",
+    "categorie": "SERVICES",
+    "sousCategorie": "PRESTATIONS",
+    "isHeader": false,
+    "ordre": 60
+  },
+  {
+    "ligne": "6231",
+    "libelle": "Prestation des organismes de formation résidents",
+    "objetDepense": "",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 61
+  },
+  {
+    "ligne": "6235",
+    "libelle": "Indemnités de formation à l'intérieur",
+    "objetDepense": "Frais de déplacement pour formation, réunion loin du district de santé",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 62
+  },
+  {
+    "ligne": "6236",
+    "libelle": "Transport des agents en formation à l'intérieur",
+    "objetDepense": "Frais de déplacement pour réunion et formation d'un agent hors de son aire de santé",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 63
+  },
+  {
+    "ligne": "6239",
+    "libelle": "Autres frais de formation du personnel",
+    "objetDepense": "Frais d'impression/reprographie des documents devant servir à la formation, achat des kits participants (blocs notes, stylos, crayons, gommes, chemises à...)",
+    "categorie": "SERVICES",
+    "sousCategorie": "FORMATION",
+    "isHeader": false,
+    "ordre": 64
+  },
+  {
+    "ligne": "6292",
+    "libelle": "Frais de réception, de fêtes et de cérémonies",
+    "objetDepense": "Consultation foraine, organisation de cérémonie, fêtes de fin d'année, réunion Coges, AG de validation de Plan d'Affaires etc...",
+    "categorie": "SERVICES",
+    "sousCategorie": "EVENEMENTS",
+    "isHeader": false,
+    "ordre": 65
+  },
+  {
+    "ligne": "6295",
+    "libelle": "Actions et interventions urgentes",
+    "objetDepense": "",
+    "categorie": "SERVICES",
+    "sousCategorie": "URGENCES",
+    "isHeader": false,
+    "ordre": 66
+  },
+  {
+    "ligne": null,
+    "libelle": "Charges de personnel",
+    "objetDepense": null,
+    "categorie": "PERSONNEL",
+    "sousCategorie": null,
+    "isHeader": true,
+    "ordre": 67
+  },
+  {
+    "ligne": "6621",
+    "libelle": "Rémunérations du personnel sous contrat et des décisionnaires",
+    "objetDepense": "Paiement salaire du personnel non fonctionnaire",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "SALAIRES",
+    "isHeader": false,
+    "ordre": 68
+  },
+  {
+    "ligne": "6622",
+    "libelle": "Rémunérations du personnel occasionnel",
+    "objetDepense": "Paiement du salaire du personnel occasionnel, aide-soignant, IDE, sage-femme diplomée d'état, technicien/supérieur de laboratoire, medecin etc...",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "SALAIRES",
+    "isHeader": false,
+    "ordre": 69
+  },
+  {
+    "ligne": "6639",
+    "libelle": "Autres primes et indemnités (primes des subsides)",
+    "objetDepense": "Paiement des primes trimestrielles et autres indemnités",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "PRIMES",
+    "isHeader": false,
+    "ordre": 70
+  },
+  {
+    "ligne": "6643",
+    "libelle": "Cotisations CNPS des agents contractuels et décisionnaires",
+    "objetDepense": "Frais de cotisation CNPS des agents contractuels et le personnel non fonctionnaire",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "COTISATIONS",
+    "isHeader": false,
+    "ordre": 71
+  },
+  {
+    "ligne": "6652",
+    "libelle": "Frais d'habillement du personnel",
+    "objetDepense": "Achat de blouses, pantalon, chaussures, chapeaux pour le personnel",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "HABILLEMENT",
+    "isHeader": false,
+    "ordre": 72
+  },
+  {
+    "ligne": "6717",
+    "libelle": "Intérêts et frais financiers",
+    "objetDepense": "Commissions sur virements à l'endroit des fournisseurs ou des bénéficiaires de primes, intérêts périodiques prélévés sur le compte (agios)",
+    "categorie": "PERSONNEL",
+    "sousCategorie": "FINANCIERS",
+    "isHeader": false,
+    "ordre": 73
+  }
+]

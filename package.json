@@ -1,0 +1,34 @@
+{
+  "name": "comptafpb",
+  "version": "1.0.0",
+  "description": "CGCS - Comptabilité de Gestion des Centres de Santé",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"cd frontend && pnpm dev\" \"cd backend && pnpm start:dev\"",
+    "dev:frontend": "cd frontend && pnpm dev",
+    "dev:backend": "cd backend && pnpm start:dev",
+    "start:auto": "powershell -File start-backend-auto.ps1",
+    "build": "pnpm --filter frontend build && pnpm --filter backend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "start": "concurrently \"pnpm --filter frontend start\" \"pnpm --filter backend start:prod\"",
+    "start:frontend": "pnpm --filter frontend start",
+    "start:backend": "pnpm --filter backend start:prod",
+    "install:all": "pnpm install",
+    "clean": "pnpm --filter frontend clean && pnpm --filter backend clean",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
+    "type-check": "pnpm --filter frontend type-check && pnpm --filter backend type-check",
+    "test": "pnpm --filter frontend test && pnpm --filter backend test",
+    "prisma:generate": "pnpm --filter backend prisma:generate",
+    "prisma:migrate": "pnpm --filter backend prisma:migrate",
+    "prisma:studio": "pnpm --filter backend prisma:studio",
+    "prisma:seed": "pnpm --filter backend prisma:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

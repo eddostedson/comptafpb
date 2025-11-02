@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import DashboardAdmin from '@/components/dashboard/dashboard-admin';
+import DashboardAdminTest from '@/components/dashboard/dashboard-admin-test';
 import DashboardRegisseur from '@/components/dashboard/dashboard-regisseur';
 import DashboardChef from '@/components/dashboard/dashboard-chef';
 
@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   // Redirection par rôle
   switch (session.user.role) {
     case 'ADMIN':
-      return <DashboardAdmin />;
+      return <DashboardAdminTest />;
     case 'REGISSEUR':
       return <DashboardRegisseur />;
     case 'CHEF_CENTRE':
