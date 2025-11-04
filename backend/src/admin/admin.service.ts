@@ -667,6 +667,67 @@ export class AdminService {
   }
 
   /**
+   * Récupérer les centres d'un régisseur spécifique
+   */
+  async getCentresByRegisseur(regisseurId: string) {
+    const centres = await this.prisma.centre.findMany({
+      where: {
+        regisseurId: regisseurId,
+        actif: true,
+      },
+      include: {
+        regisseur: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            prenom: true,
+            region: true,
+          },
+        },
+        users: {
+          where: {
+            role: RoleType.CHEF_CENTRE,
+          },
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            prenom: true,
+            email: true,
+          },
+          take: 1,
+        },
+        _count: {
+          select: {
+            users: true,
+            budgets: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return centres.map((centre) => {
+      const centreAny = centre as any;
+      const { province, commune, region: oldRegion, ...centreData } = centre;
+      
+      return {
+        ...centreData,
+        chefLieu: centreAny.chefLieu || province || '',
+        departement: centreAny.departement || oldRegion || '',
+        region: centreAny.region || commune || '',
+        commune: commune || '',
+        chefCentre: centre.users.length > 0 ? centre.users[0] : null,
+        usersCount: centre._count.users,
+        budgetsCount: centre._count.budgets,
+      };
+    });
+  }
+
+  /**
    * Récupérer tous les centres
    */
   async getAllCentres() {

@@ -1,15 +1,17 @@
+'use client';
+
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import BudgetForm from '@/components/budget/budget-form';
 
-export default async function CreateBudgetPage() {
-  const session = await getServerSession(authOptions);
+export default function CreateBudgetPage() {
+  const searchParams = useSearchParams();
+  const budgetId = searchParams.get('budgetId') || undefined;
 
-  if (!session) {
-    redirect('/login');
-  }
+  useEffect(() => {
+    console.log('CreateBudgetPage - budgetId depuis URL:', budgetId);
+  }, [budgetId]);
 
   return (
     <DashboardLayout>
@@ -21,7 +23,7 @@ export default async function CreateBudgetPage() {
           </p>
         </div>
 
-        <BudgetForm />
+        <BudgetForm key={budgetId || 'new'} budgetId={budgetId} />
       </div>
     </DashboardLayout>
   );

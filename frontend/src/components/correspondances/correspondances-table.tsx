@@ -421,7 +421,7 @@ export default function CorrespondancesTable() {
                   <div className="flex items-center justify-end gap-1">
                     <DollarSign className="w-4 h-4 text-slate-400" />
                     <span className="font-medium text-slate-800">
-                      {corr.montantMax.toLocaleString()} XAF
+                      {corr.montantMax.toLocaleString()} FCFA
                     </span>
                   </div>
                 </td>
@@ -445,7 +445,7 @@ export default function CorrespondancesTable() {
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
-            <span>Total: {correspondances.reduce((sum, c) => sum + c.montantMax, 0).toLocaleString()} XAF</span>
+            <span>Total: {correspondances.reduce((sum, c) => sum + c.montantMax, 0).toLocaleString()} FCFA</span>
           </div>
         </div>
       </div>

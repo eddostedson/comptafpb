@@ -29,6 +29,20 @@ interface Props {
   description?: string;
   annee: number;
   type: string;
+  centre?: {
+    code: string;
+    nom: string;
+    niveau?: string;
+    type?: string;
+    commune?: string;
+    region?: string;
+  };
+  regisseur?: {
+    code: string;
+    nom: string;
+    prenom: string;
+    region?: string;
+  };
 }
 
 const SOURCE_MAPPING: Record<string, string[]> = {
@@ -38,7 +52,7 @@ const SOURCE_MAPPING: Record<string, string[]> = {
   DONS_LEGS: ['AUTRES'],
 };
 
-export default function BudgetStep3Summary({ sources, lignes, nom, description, annee, type }: Props) {
+export default function BudgetStep3Summary({ sources, lignes, nom, description, annee, type, centre, regisseur }: Props) {
   const calculations = useMemo(() => {
     // Calculer les totaux de recettes par source
     const recettesParSource: Record<string, number> = {};
@@ -124,12 +138,13 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
       {/* Informations générales */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
-          <CardTitle className="text-lg">Informations du Budget</CardTitle>
+          <CardTitle className="text-lg">Informations du Plan d'Action Annuel (PAA)</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="grid md:grid-cols-2 gap-4">
+        <CardContent className="space-y-4">
+          {/* Informations du budget */}
+          <div className="grid md:grid-cols-2 gap-4 pb-4 border-b">
             <div>
-              <p className="text-sm text-slate-600">Nom</p>
+              <p className="text-sm text-slate-600">Nom du PAA</p>
               <p className="font-semibold">{nom || 'Non renseigné'}</p>
             </div>
             <div>
@@ -147,6 +162,44 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
               </div>
             )}
           </div>
+
+          {/* Informations du centre et du régisseur */}
+          {(centre || regisseur) && (
+            <div className="grid md:grid-cols-2 gap-4 pt-4">
+              {centre && (
+                <div className="p-3 bg-blue-100 rounded-lg border border-blue-200">
+                  <p className="text-xs font-medium text-blue-900 uppercase tracking-wide mb-1">
+                    Centre de Santé
+                  </p>
+                  <p className="text-sm font-bold text-blue-800">
+                    {centre.niveau ? `${centre.niveau} ` : ''}{centre.nom}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Code: <span className="font-medium">{centre.code}</span>
+                    {centre.commune && <> • {centre.commune}</>}
+                    {centre.region && <> • {centre.region}</>}
+                  </p>
+                </div>
+              )}
+              {regisseur && (
+                <div className="p-3 bg-green-100 rounded-lg border border-green-200">
+                  <p className="text-xs font-medium text-green-900 uppercase tracking-wide mb-1">
+                    Régisseur (validation)
+                  </p>
+                  <p className="text-sm font-bold text-green-800">
+                    {regisseur.prenom} {regisseur.nom}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Code: <span className="font-medium">{regisseur.code}</span>
+                    {regisseur.region && <> • Région: {regisseur.region}</>}
+                  </p>
+                  <p className="text-xs text-green-700 mt-2 font-medium italic">
+                    ✓ Ce PAA sera soumis à {regisseur.prenom} {regisseur.nom} pour validation
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -161,7 +214,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-green-600">
-              {calculations.totalRecettes.toLocaleString()} CFA
+              {calculations.totalRecettes.toLocaleString()} FCFA
             </p>
           </CardContent>
         </Card>
@@ -175,7 +228,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold text-red-600">
-              {calculations.totalDepenses.toLocaleString()} CFA
+              {calculations.totalDepenses.toLocaleString()} FCFA
             </p>
           </CardContent>
         </Card>
@@ -197,7 +250,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 </p>
               </div>
               <p className="text-xl font-bold">
-                {(calculations.depensesParSource['FBP'] || 0).toLocaleString()} CFA
+                {(calculations.depensesParSource['FBP'] || 0).toLocaleString()} FCFA
               </p>
             </div>
 
@@ -210,7 +263,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 </p>
               </div>
               <p className="text-xl font-bold">
-                {(calculations.depensesParSource['CMU'] || 0).toLocaleString()} CFA
+                {(calculations.depensesParSource['CMU'] || 0).toLocaleString()} FCFA
               </p>
             </div>
 
@@ -223,7 +276,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 </p>
               </div>
               <p className="text-xl font-bold">
-                {(calculations.depensesParSource['RP'] || 0).toLocaleString()} CFA
+                {(calculations.depensesParSource['RP'] || 0).toLocaleString()} FCFA
               </p>
             </div>
 
@@ -236,7 +289,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 </p>
               </div>
               <p className="text-xl font-bold">
-                {(calculations.depensesParSource['BE'] || 0).toLocaleString()} CFA
+                {(calculations.depensesParSource['BE'] || 0).toLocaleString()} FCFA
               </p>
             </div>
 
@@ -249,7 +302,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 </p>
               </div>
               <p className="text-xl font-bold">
-                {(calculations.depensesParSource['AUTRES'] || 0).toLocaleString()} CFA
+                {(calculations.depensesParSource['AUTRES'] || 0).toLocaleString()} FCFA
               </p>
             </div>
 
@@ -260,7 +313,7 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                 <p className="text-sm text-slate-600">{lignes.length} ligne(s) au total</p>
               </div>
               <p className="text-2xl font-bold text-blue-600">
-                {calculations.totalDepenses.toLocaleString()} CFA
+                {calculations.totalDepenses.toLocaleString()} FCFA
               </p>
             </div>
           </div>
@@ -299,9 +352,9 @@ export default function BudgetStep3Summary({ sources, lignes, nom, description, 
                   .filter((v) => !v.isValid)
                   .map((v) => (
                     <li key={v.source}>
-                      <strong>{v.source}:</strong> Dépenses {v.depense.toLocaleString()} CFA &gt;
-                      Recettes {v.recette.toLocaleString()} CFA (manque{' '}
-                      {(v.depense - v.recette).toLocaleString()} CFA)
+                      <strong>{v.source}:</strong> Dépenses {v.depense.toLocaleString()} FCFA &gt;
+                      Recettes {v.recette.toLocaleString()} FCFA (manque{' '}
+                      {(v.depense - v.recette).toLocaleString()} FCFA)
                     </li>
                   ))}
               </ul>

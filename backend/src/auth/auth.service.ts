@@ -100,8 +100,28 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
-        centre: true,
-        regisseur: true,
+        centre: {
+          include: {
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
+          },
+        },
+        regisseur: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            prenom: true,
+            region: true,
+          },
+        },
       },
     });
 
@@ -128,6 +148,18 @@ export class AuthService {
 
     // Logger la connexion
     await this.logAuditAction(user.id, 'LOGIN', 'User', user.id, 'Connexion réussie');
+
+    // Pour les chefs de centre : si le régisseur n'est pas directement associé au chef mais au centre,
+    // utiliser celui du centre (logique métier : le régisseur est associé au centre, donc le chef en bénéficie)
+    if (user.role === 'CHEF_CENTRE') {
+      const regisseur = user.regisseur || user.centre?.regisseur || null;
+      const { password: _, ...userWithoutPassword } = user;
+      return {
+        ...userWithoutPassword,
+        regisseur, // Remplacer par le régisseur du centre si le chef n'en a pas directement
+        mustChangePassword: user.mustChangePassword,
+      };
+    }
 
     // Retourner l'utilisateur sans le password, avec l'info mustChangePassword
     const { password: _, ...userWithoutPassword } = user;
@@ -188,11 +220,22 @@ export class AuthService {
             id: true,
             code: true,
             nom: true,
+            niveau: true,
+            type: true,
             commune: true,
             sousPrefecture: true,
             chefLieu: true,
             departement: true,
             region: true,
+            regisseur: {
+              select: {
+                id: true,
+                code: true,
+                nom: true,
+                prenom: true,
+                region: true,
+              },
+            },
           },
         },
         regisseur: {
@@ -211,6 +254,16 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('Utilisateur introuvable');
+    }
+
+    // Pour les chefs de centre : si le régisseur n'est pas directement associé au chef mais au centre,
+    // utiliser celui du centre (comme dans getAllChefsCentres)
+    if (user.role === 'CHEF_CENTRE') {
+      const regisseur = user.regisseur || user.centre?.regisseur || null;
+      return {
+        ...user,
+        regisseur,
+      };
     }
 
     return user;

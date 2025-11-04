@@ -28,3 +28,4 @@ ALTER TABLE "centres"
 -- ALTER TABLE "centres" DROP COLUMN IF EXISTS "province";
 
 
+

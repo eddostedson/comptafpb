@@ -66,11 +66,11 @@ export default function BudgetList() {
 
   const getStatutBadge = (statut: string) => {
     const badges = {
-      BROUILLON: { icon: Clock, color: 'bg-gray-100 text-gray-800 border-gray-200' },
-      EN_ATTENTE_VALIDATION: { icon: Clock, color: 'bg-amber-100 text-amber-800 border-amber-200' },
-      VALIDE: { icon: CheckCircle, color: 'bg-green-100 text-green-800 border-green-200' },
-      REJETE: { icon: XCircle, color: 'bg-red-100 text-red-800 border-red-200' },
-      ARCHIVE: { icon: FileText, color: 'bg-slate-100 text-slate-800 border-slate-200' },
+      BROUILLON: { icon: Clock, color: 'bg-gray-100 text-gray-800 border-gray-200', label: 'BROUILLON' },
+      EN_ATTENTE_VALIDATION: { icon: Clock, color: 'bg-amber-100 text-amber-800 border-amber-200', label: 'EN ATTENTE' },
+      VALIDE: { icon: CheckCircle, color: 'bg-green-100 text-green-800 border-green-200', label: 'VALIDÉ' },
+      REJETE: { icon: XCircle, color: 'bg-red-100 text-red-800 border-red-200', label: 'REJETÉ' },
+      ARCHIVE: { icon: FileText, color: 'bg-slate-100 text-slate-800 border-slate-200', label: 'ARCHIVÉ' },
     };
     return badges[statut as keyof typeof badges] || badges.BROUILLON;
   };
@@ -125,7 +125,7 @@ export default function BudgetList() {
                     </div>
                     <span className={`px-2 py-1 rounded text-xs border flex items-center gap-1 ${badge.color}`}>
                       <Icon className="w-3 h-3" />
-                      {budget.statut.replace('_', ' ')}
+                      {badge.label}
                     </span>
                   </div>
                 </CardHeader>
@@ -142,7 +142,7 @@ export default function BudgetList() {
                       </div>
                     )}
                     <div className="pt-2 border-t">
-                      <span className="font-semibold text-lg">{budget.montantTotal.toLocaleString()} CFA</span>
+                      <span className="font-semibold text-lg">{budget.montantTotal.toLocaleString()} FCFA</span>
                     </div>
                   </div>
                 </CardContent>

@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBudgetDto, SourceRecetteDto, LigneBudgetaireDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
+import { CreateLigneBudgetaireDto } from './dto/create-ligne-budgetaire.dto';
+import { UpdateLigneBudgetaireDto } from './dto/update-ligne-budgetaire.dto';
 import { StatutBudget, SourceFinancement, TypeSourceRecette } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
@@ -10,55 +12,114 @@ export class BudgetService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(userId: string, centreId: string, dto: CreateBudgetDto) {
-    // Calculer les totaux
-    const { totalRecettes, totalDepenses, recettesParSource, depensesParSource } =
-      this.calculateTotals(dto.sourcesRecettes, dto.lignesBudgetaires);
+    try {
+      // Vérifications préliminaires
+      if (!dto.nom || dto.nom.trim() === '') {
+        throw new BadRequestException('Le nom du budget est requis');
+      }
+      if (!dto.annee || dto.annee < 2000 || dto.annee > 2100) {
+        throw new BadRequestException('L\'année doit être valide (2000-2100)');
+      }
+      if (!dto.type) {
+        throw new BadRequestException('Le type de budget est requis');
+      }
+      if (!dto.sourcesRecettes || dto.sourcesRecettes.length === 0) {
+        throw new BadRequestException('Au moins une source de recette est requise');
+      }
 
-    // Validation : vérifier que les dépenses ne dépassent pas les recettes par source
-    this.validateBudget(recettesParSource, depensesParSource);
-
-    // Générer le code
-    const code = await this.generateCode(dto.annee, centreId);
-
-    // Créer le budget avec les sources et lignes
-    const budget = await this.prisma.budget.create({
-      data: {
-        code,
+      console.log('[Budget Service] Début création budget:', {
         nom: dto.nom,
-        description: dto.description,
         annee: dto.annee,
         type: dto.type,
-        statut: StatutBudget.BROUILLON,
-        centreId,
-        creePar: userId,
-        montantTotal: new Decimal(totalDepenses),
-        sourcesRecettes: {
-          create: dto.sourcesRecettes.map((s) => ({
-            type: s.type as TypeSourceRecette,
-            nature: s.nature,
-            montant: new Decimal(s.montant),
-          })),
-        },
-        lignesBudgetaires: {
-          create: dto.lignesBudgetaires.map((l) => {
-            const montantActivite = new Decimal(l.quantite)
-              .mul(new Decimal(l.frequence))
-              .mul(new Decimal(l.coutUnitaire));
+        sourcesCount: dto.sourcesRecettes?.length || 0,
+        lignesCount: dto.lignesBudgetaires?.length || 0,
+      });
 
-            return {
-              activiteCle: l.activiteCle,
-              typeMoyens: l.typeMoyens,
-              quantite: new Decimal(l.quantite),
-              frequence: new Decimal(l.frequence),
-              coutUnitaire: new Decimal(l.coutUnitaire),
-              montantActivite,
-              montantPrevu: montantActivite,
-              ligneNbe: l.ligneNbe,
-              libelleNbe: l.libelleNbe,
-              sourceFinancement: l.sourceFinancement as SourceFinancement,
-            };
-          }),
-        },
+      // Calculer les totaux (utiliser un tableau vide si lignesBudgetaires n'existe pas)
+      const lignes = dto.lignesBudgetaires || [];
+      const { totalRecettes, totalDepenses, recettesParSource, depensesParSource } =
+        this.calculateTotals(dto.sourcesRecettes, lignes);
+
+      console.log('[Budget Service] Totaux calculés:', {
+        totalRecettes,
+        totalDepenses,
+      });
+
+      // Validation : vérifier que les dépenses ne dépassent pas les recettes par source
+      // Seulement si il y a des dépenses à valider
+      if (lignes && lignes.length > 0) {
+        this.validateBudget(recettesParSource, depensesParSource);
+      }
+
+      // Générer le code
+      const code = await this.generateCode(dto.annee, centreId);
+      console.log('[Budget Service] Code généré:', code);
+
+      // Créer le budget avec les sources et lignes
+      console.log('[Budget Service] Préparation des sources de recettes:', dto.sourcesRecettes);
+      
+      const sourcesData = dto.sourcesRecettes.map((s) => {
+        // S'assurer que le montant est une string valide et nettoyée
+        const montantStr = String(s.montant || '0').trim();
+        if (!montantStr || montantStr === '') {
+          throw new BadRequestException(`Le montant ne peut pas être vide pour la source ${s.type}`);
+        }
+        const montantDecimal = new Decimal(montantStr);
+        if (montantDecimal.lt(0)) {
+          throw new BadRequestException(`Le montant doit être positif pour la source ${s.type}`);
+        }
+        
+        console.log('[Budget Service] Source préparée:', {
+          type: s.type,
+          montant: montantStr,
+          montantDecimal: montantDecimal.toString(),
+        });
+        
+        return {
+          type: s.type as TypeSourceRecette,
+          nature: s.nature && s.nature.trim() !== '' ? s.nature.trim() : null,
+          montant: montantDecimal,
+        };
+      });
+
+      console.log('[Budget Service] Création du budget en base de données...');
+      
+      const budget = await this.prisma.budget.create({
+        data: {
+          code,
+          nom: dto.nom,
+          description: dto.description,
+          annee: dto.annee,
+          type: dto.type,
+          statut: StatutBudget.BROUILLON,
+          centreId,
+          creePar: userId,
+          montantTotal: new Decimal(String(totalDepenses || 0)),
+          sourcesRecettes: {
+            create: sourcesData,
+          },
+          lignesBudgetaires: {
+            create: lignes && lignes.length > 0
+              ? lignes.map((l) => {
+                  const montantActivite = new Decimal(l.quantite)
+                    .mul(new Decimal(l.frequence))
+                    .mul(new Decimal(l.coutUnitaire));
+
+                  return {
+                    activiteCle: l.activiteCle,
+                    typeMoyens: l.typeMoyens,
+                    quantite: new Decimal(l.quantite),
+                    frequence: new Decimal(l.frequence),
+                    coutUnitaire: new Decimal(l.coutUnitaire),
+                    montantActivite,
+                    montantPrevu: montantActivite,
+                    ligneNbe: l.ligneNbe || null,
+                    libelleNbe: l.libelleNbe || null,
+                    sourceFinancement: l.sourceFinancement as SourceFinancement,
+                  };
+                })
+              : [],
+          },
       },
       include: {
         sourcesRecettes: true,
@@ -67,10 +128,19 @@ export class BudgetService {
       },
     });
 
-    // Sauvegarder les templates d'activités pour auto-complétion
-    await this.saveActivityTemplates(centreId, dto.lignesBudgetaires);
+      // Sauvegarder les templates d'activités pour auto-complétion (seulement s'il y a des lignes)
+      if (lignes && lignes.length > 0) {
+        await this.saveActivityTemplates(centreId, lignes);
+      }
 
-    return budget;
+      console.log('[Budget Service] Budget créé avec succès:', budget.id);
+      return budget;
+    } catch (error: any) {
+      console.error('[Budget Service] Erreur lors de la création du budget:', error);
+      console.error('[Budget Service] Message:', error.message);
+      console.error('[Budget Service] Stack:', error.stack);
+      throw error;
+    }
   }
 
   async findAll(centreId?: string, regisseurId?: string) {
@@ -81,14 +151,34 @@ export class BudgetService {
       where.centre = { regisseurId };
     }
 
-    return this.prisma.budget.findMany({
+    const budgets = await this.prisma.budget.findMany({
       where,
       include: {
         sourcesRecettes: true,
         lignesBudgetaires: true,
-        centre: true,
+        centre: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            niveau: true,
+            type: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    // Calculer le montant total à partir des sources de recettes pour chaque budget
+    return budgets.map((budget) => {
+      const montantTotal = budget.sourcesRecettes.reduce(
+        (sum, source) => sum + Number(source.montant),
+        0
+      );
+      return {
+        ...budget,
+        montantTotal,
+      };
     });
   }
 
@@ -99,10 +189,30 @@ export class BudgetService {
         sourcesRecettes: true,
         lignesBudgetaires: {
           include: {
-            nbeLine: true,
+            nbeLine: {
+              select: {
+                id: true,
+                ligne: true,
+                libelle: true,
+                objetDepense: true,
+                categorie: true,
+                sousCategorie: true,
+              },
+            },
           },
         },
-        centre: true,
+        centre: {
+          select: {
+            id: true,
+            code: true,
+            nom: true,
+            niveau: true,
+            type: true,
+            commune: true,
+            region: true,
+            departement: true,
+          },
+        },
       },
     });
 
@@ -303,6 +413,27 @@ export class BudgetService {
     };
   }
 
+  async delete(id: string, userId: string, userRole: string) {
+    const budget = await this.findOne(id);
+
+    // Vérifier les permissions
+    if (userRole !== 'ADMIN' && budget.creePar !== userId) {
+      throw new BadRequestException('Seul le créateur du budget ou un administrateur peut le supprimer');
+    }
+
+    // Ne pas permettre la suppression des budgets validés (sauf admin)
+    if (budget.statut === StatutBudget.VALIDE && userRole !== 'ADMIN') {
+      throw new BadRequestException('Un budget validé ne peut pas être supprimé. Contactez un administrateur.');
+    }
+
+    // Supprimer le budget (cascade delete pour sources et lignes)
+    await this.prisma.budget.delete({
+      where: { id },
+    });
+
+    return { message: 'Budget supprimé avec succès', id };
+  }
+
   async getActivitySuggestions(centreId: string, query?: string) {
     const where: any = { centreId };
     if (query) {
@@ -487,6 +618,252 @@ export class BudgetService {
         });
       }
     }
+  }
+
+  // Méthodes pour gérer les lignes budgétaires individuellement
+  async createLigneBudgetaire(budgetId: string, userId: string, dto: CreateLigneBudgetaireDto) {
+    // Vérifier que le budget existe et appartient à l'utilisateur
+    const budget = await this.findOne(budgetId);
+    if (budget.creePar !== userId) {
+      throw new BadRequestException('Seul le créateur peut ajouter des lignes à ce budget');
+    }
+    if (budget.statut === StatutBudget.VALIDE || budget.statut === StatutBudget.ARCHIVE) {
+      throw new BadRequestException('Ce budget a été validé et ne peut plus être modifié');
+    }
+
+    // Calculer le montant de l'activité
+    const montantActivite = new Decimal(dto.quantite)
+      .mul(new Decimal(dto.frequence))
+      .mul(new Decimal(dto.coutUnitaire));
+
+    // Trouver la ligne NBE si elle existe
+    let nbeLineId: string | null = null;
+    if (dto.ligneNbe) {
+      const nbeLine = await this.prisma.nbeLine.findFirst({
+        where: { ligne: dto.ligneNbe.trim() },
+      });
+      if (nbeLine) {
+        nbeLineId = nbeLine.id;
+      }
+    }
+
+    // Créer la ligne budgétaire
+    const ligne = await this.prisma.ligneBudgetaire.create({
+      data: {
+        budgetId,
+        activiteCle: dto.activiteCle.trim(),
+        typeMoyens: dto.typeMoyens.trim(),
+        quantite: new Decimal(dto.quantite),
+        frequence: new Decimal(dto.frequence),
+        coutUnitaire: new Decimal(dto.coutUnitaire),
+        montantActivite,
+        montantPrevu: montantActivite,
+        ligneNbe: dto.ligneNbe?.trim() || null,
+        libelleNbe: dto.libelleNbe?.trim() || null,
+        sourceFinancement: dto.sourceFinancement as SourceFinancement,
+        nbeLineId,
+      },
+      include: {
+        nbeLine: {
+          select: {
+            id: true,
+            ligne: true,
+            libelle: true,
+            objetDepense: true,
+            categorie: true,
+            sousCategorie: true,
+          },
+        },
+      },
+    });
+
+    // Mettre à jour le montant total du budget
+    await this.updateBudgetTotal(budgetId);
+
+    // Sauvegarder le template d'activité
+    await this.saveActivityTemplates(budget.centreId, [dto]);
+
+    return ligne;
+  }
+
+  async updateLigneBudgetaire(
+    budgetId: string,
+    ligneId: string,
+    userId: string,
+    dto: UpdateLigneBudgetaireDto,
+  ) {
+    // Vérifier que le budget existe et appartient à l'utilisateur
+    const budget = await this.findOne(budgetId);
+    if (budget.creePar !== userId) {
+      throw new BadRequestException('Seul le créateur peut modifier les lignes de ce budget');
+    }
+    if (budget.statut === StatutBudget.VALIDE || budget.statut === StatutBudget.ARCHIVE) {
+      throw new BadRequestException('Ce budget a été validé et ne peut plus être modifié');
+    }
+
+    // Vérifier que la ligne existe et appartient au budget
+    const ligne = await this.prisma.ligneBudgetaire.findFirst({
+      where: {
+        id: ligneId,
+        budgetId,
+      },
+    });
+
+    if (!ligne) {
+      throw new NotFoundException('Ligne budgétaire introuvable');
+    }
+
+    // Préparer les données de mise à jour
+    const updateData: any = {};
+
+    if (dto.activiteCle !== undefined) {
+      updateData.activiteCle = dto.activiteCle.trim();
+    }
+    if (dto.typeMoyens !== undefined) {
+      updateData.typeMoyens = dto.typeMoyens.trim();
+    }
+    if (dto.quantite !== undefined) {
+      updateData.quantite = new Decimal(dto.quantite);
+    }
+    if (dto.frequence !== undefined) {
+      updateData.frequence = new Decimal(dto.frequence);
+    }
+    if (dto.coutUnitaire !== undefined) {
+      updateData.coutUnitaire = new Decimal(dto.coutUnitaire);
+    }
+    if (dto.ligneNbe !== undefined) {
+      updateData.ligneNbe = dto.ligneNbe?.trim() || null;
+    }
+    if (dto.libelleNbe !== undefined) {
+      updateData.libelleNbe = dto.libelleNbe?.trim() || null;
+    }
+    if (dto.sourceFinancement !== undefined) {
+      updateData.sourceFinancement = dto.sourceFinancement as SourceFinancement;
+    }
+
+    // Recalculer le montant si quantité, fréquence ou coût unitaire modifiés
+    const quantite = dto.quantite !== undefined ? new Decimal(dto.quantite) : ligne.quantite;
+    const frequence = dto.frequence !== undefined ? new Decimal(dto.frequence) : ligne.frequence;
+    const coutUnitaire = dto.coutUnitaire !== undefined ? new Decimal(dto.coutUnitaire) : ligne.coutUnitaire;
+
+    const montantActivite = quantite.mul(frequence).mul(coutUnitaire);
+    updateData.montantActivite = montantActivite;
+    updateData.montantPrevu = montantActivite;
+
+    // Mettre à jour la référence NBE si nécessaire
+    if (dto.ligneNbe !== undefined) {
+      if (dto.ligneNbe) {
+        const nbeLine = await this.prisma.nbeLine.findFirst({
+          where: { ligne: dto.ligneNbe.trim() },
+        });
+        updateData.nbeLineId = nbeLine?.id || null;
+      } else {
+        updateData.nbeLineId = null;
+      }
+    }
+
+    // Mettre à jour la ligne
+    const updated = await this.prisma.ligneBudgetaire.update({
+      where: { id: ligneId },
+      data: updateData,
+      include: {
+        nbeLine: {
+          select: {
+            id: true,
+            ligne: true,
+            libelle: true,
+            objetDepense: true,
+            categorie: true,
+            sousCategorie: true,
+          },
+        },
+      },
+    });
+
+    // Mettre à jour le montant total du budget
+    await this.updateBudgetTotal(budgetId);
+
+    return updated;
+  }
+
+  async deleteLigneBudgetaire(budgetId: string, ligneId: string, userId: string) {
+    // Vérifier que le budget existe et appartient à l'utilisateur
+    const budget = await this.findOne(budgetId);
+    if (budget.creePar !== userId) {
+      throw new BadRequestException('Seul le créateur peut supprimer les lignes de ce budget');
+    }
+    if (budget.statut === StatutBudget.VALIDE || budget.statut === StatutBudget.ARCHIVE) {
+      throw new BadRequestException('Ce budget a été validé et ne peut plus être modifié');
+    }
+
+    // Vérifier que la ligne existe et appartient au budget
+    const ligne = await this.prisma.ligneBudgetaire.findFirst({
+      where: {
+        id: ligneId,
+        budgetId,
+      },
+    });
+
+    if (!ligne) {
+      throw new NotFoundException('Ligne budgétaire introuvable');
+    }
+
+    // Supprimer la ligne
+    await this.prisma.ligneBudgetaire.delete({
+      where: { id: ligneId },
+    });
+
+    // Mettre à jour le montant total du budget
+    await this.updateBudgetTotal(budgetId);
+
+    return { message: 'Ligne budgétaire supprimée avec succès' };
+  }
+
+  async getLigneBudgetaire(budgetId: string, ligneId: string) {
+    const ligne = await this.prisma.ligneBudgetaire.findFirst({
+      where: {
+        id: ligneId,
+        budgetId,
+      },
+      include: {
+        nbeLine: {
+          select: {
+            id: true,
+            ligne: true,
+            libelle: true,
+            objetDepense: true,
+            categorie: true,
+            sousCategorie: true,
+          },
+        },
+      },
+    });
+
+    if (!ligne) {
+      throw new NotFoundException('Ligne budgétaire introuvable');
+    }
+
+    return ligne;
+  }
+
+  private async updateBudgetTotal(budgetId: string) {
+    // Récupérer toutes les lignes budgétaires du budget
+    const lignes = await this.prisma.ligneBudgetaire.findMany({
+      where: { budgetId },
+    });
+
+    // Calculer le total des dépenses
+    const totalDepenses = lignes.reduce((sum, ligne) => {
+      return sum + Number(ligne.montantActivite);
+    }, 0);
+
+    // Mettre à jour le montant total du budget
+    await this.prisma.budget.update({
+      where: { id: budgetId },
+      data: {
+        montantTotal: new Decimal(totalDepenses),
+      },
+    });
   }
 }
 

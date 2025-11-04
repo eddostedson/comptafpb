@@ -1,35 +1,92 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, FileCheck, AlertCircle, TrendingUp } from 'lucide-react';
 import DashboardLayout from './dashboard-layout';
+import { apiClient } from '@/lib/api-client';
 
 export default function DashboardRegisseur() {
   const { data: session } = useSession();
+  const [stats, setStats] = useState({
+    centresCount: 0,
+    opPending: 0,
+    alertes: 0,
+    budgetConsolide: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!session?.user?.regisseurId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const token = (session as any)?.accessToken;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        // Récupérer les centres du régisseur (l'endpoint /admin/centres retourne déjà uniquement les centres du régisseur si c'est un régisseur)
+        const centresRes = await apiClient.get('/admin/centres', { headers });
+        const regisseurCentres = Array.isArray(centresRes.data) ? centresRes.data : [];
+
+        // Récupérer les budgets des centres associés (si disponible)
+        let totalBudget = 0;
+        try {
+          const budgetsRes = await apiClient.get('/budgets', { headers });
+          const budgets = Array.isArray(budgetsRes.data) ? budgetsRes.data : [];
+          const regisseurBudgets = budgets.filter(
+            (budget: any) => regisseurCentres.some((c: any) => c.id === budget.centreId)
+          );
+          totalBudget = regisseurBudgets.reduce((sum: number, budget: any) => {
+            return sum + parseFloat(budget.montantTotal || 0);
+          }, 0);
+        } catch (error) {
+          console.log('Budgets non disponibles pour le moment');
+        }
+
+        setStats({
+          centresCount: regisseurCentres.length,
+          opPending: 0, // Pas encore implémenté
+          alertes: 0, // Pas encore implémenté
+          budgetConsolide: totalBudget,
+        });
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (session) {
+      loadStats();
+    }
+  }, [session]);
+
+  const statsData = [
     {
       title: 'Mes Centres',
-      value: '23',
+      value: isLoading ? '...' : stats.centresCount.toString(),
       icon: Building2,
       description: 'Centres supervisés',
     },
     {
       title: 'OP à valider',
-      value: '47',
+      value: isLoading ? '...' : stats.opPending.toString(),
       icon: FileCheck,
       description: 'En attente',
     },
     {
       title: 'Alertes',
-      value: '5',
+      value: isLoading ? '...' : stats.alertes.toString(),
       icon: AlertCircle,
       description: 'Nécessitent attention',
     },
     {
       title: 'Budget consolidé',
-      value: '450K XAF',
+      value: isLoading ? '...' : stats.budgetConsolide === 0 ? '0 FCFA' : `${(stats.budgetConsolide / 1000).toFixed(0)}K FCFA`,
       icon: TrendingUp,
       description: 'Total centres',
     },
@@ -46,7 +103,7 @@ export default function DashboardRegisseur() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => {
+          {statsData.map((stat) => {
             const Icon = stat.icon;
             return (
               <Card key={stat.title}>

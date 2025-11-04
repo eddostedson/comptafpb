@@ -2,16 +2,46 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2, Users, FileText, TrendingUp, ArrowRight, Activity, Zap, Shield, UserCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { apiClient } from '@/lib/api-client';
+
+interface UserProfile {
+  id: string;
+  email: string;
+  nom: string;
+  prenom: string;
+  telephone?: string;
+  role: string;
+  centreId?: string;
+  regisseurId?: string;
+  centre?: {
+    id: string;
+    code: string;
+    nom: string;
+    niveau?: string;
+    type?: string;
+    commune?: string;
+    region?: string;
+  };
+  regisseur?: {
+    id: string;
+    code: string;
+    nom: string;
+    prenom: string;
+    region?: string;
+  };
+}
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -21,6 +51,32 @@ export default function HomePage() {
       router.push('/change-password');
     }
   }, [status, session, router]);
+
+  // Charger le profil complet avec centre et régisseur pour les chefs de centre
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!session?.user || session.user.role !== 'CHEF_CENTRE') {
+        return;
+      }
+
+      try {
+        setIsLoadingProfile(true);
+        const token = (session as any)?.accessToken;
+        const response = await apiClient.get('/auth/profile', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        setProfile(response.data);
+      } catch (error) {
+        console.error('Erreur lors du chargement du profil:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    if (session && status === 'authenticated') {
+      loadProfile();
+    }
+  }, [session, status]);
 
   if (status === 'loading') {
     return (
@@ -112,6 +168,84 @@ export default function HomePage() {
             <p className="text-lg text-slate-500 mt-2">
               Bon retour, <span className="font-semibold text-slate-700">{session.user.name}</span>
             </p>
+            {/* Informations du centre et régisseur pour les chefs de centre */}
+            {session.user.role === 'CHEF_CENTRE' && (
+              <div className="mt-6 max-w-3xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {profile?.centre && (
+                    <Card className="border-2 border-blue-200 bg-blue-50/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-blue-900 uppercase tracking-wide mb-1">
+                              Votre Centre de Santé
+                            </p>
+                            <p className="text-sm font-bold text-blue-800">
+                              {profile.centre.niveau ? `${profile.centre.niveau} ` : ''}{profile.centre.nom}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                              Code: <span className="font-medium">{profile.centre.code}</span>
+                              {profile.centre.commune && (
+                                <> • {profile.centre.commune}</>
+                              )}
+                              {profile.centre.region && (
+                                <> • {profile.centre.region}</>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {profile?.regisseur && (
+                    <Card className="border-2 border-green-200 bg-green-50/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-green-100 rounded-lg">
+                            <Users className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-green-900 uppercase tracking-wide mb-1">
+                              Votre Régisseur
+                            </p>
+                            <p className="text-sm font-bold text-green-800">
+                              {profile.regisseur.prenom} {profile.regisseur.nom}
+                            </p>
+                            <p className="text-xs text-green-600 mt-1">
+                              Code: <span className="font-medium">{profile.regisseur.code}</span>
+                              {profile.regisseur.region && (
+                                <> • Région: {profile.regisseur.region}</>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                {!profile?.centre && !isLoadingProfile && (
+                  <Card className="border-2 border-yellow-200 bg-yellow-50/50 mt-4">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Aucun centre de santé n'est assigné à votre compte. Veuillez contacter l'administrateur.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                {!profile?.regisseur && profile?.centre && !isLoadingProfile && (
+                  <Card className="border-2 border-yellow-200 bg-yellow-50/50 mt-4">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Aucun régisseur n'est assigné à votre centre. Veuillez contacter l'administrateur.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Actions rapides */}

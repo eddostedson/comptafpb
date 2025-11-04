@@ -15,7 +15,7 @@ export default function DashboardAdminTest() {
     regisseurs: 0,
     chefsCentres: 0,
     opEnAttente: 0,
-    budgetTotal: '0 XAF',
+    budgetTotal: '0 FCFA',
   });
   const [relationships, setRelationships] = useState<{
     centres: any[];
@@ -65,7 +65,7 @@ export default function DashboardAdminTest() {
           regisseurs: regisseursCount,
           chefsCentres: chefsCount,
           opEnAttente: 0, // TODO: charger depuis l'API OP quand disponible
-          budgetTotal: '0 XAF', // TODO: charger depuis l'API Budget quand disponible
+          budgetTotal: '0 FCFA', // TODO: charger depuis l'API Budget quand disponible
         });
 
         // Sauvegarder les données pour afficher les relations

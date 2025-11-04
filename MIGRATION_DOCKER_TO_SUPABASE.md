@@ -202,3 +202,4 @@ Si vous rencontrez des problèmes :
 4. Consulter [SUPABASE_SETUP.md](SUPABASE_SETUP.md) pour les détails
 
 
+

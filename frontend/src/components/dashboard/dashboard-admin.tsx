@@ -65,7 +65,7 @@ export default function DashboardAdmin() {
     },
     {
       title: 'Budget total',
-      value: '12.5M XAF',
+      value: '12.5M FCFA',
       icon: TrendingUp,
       description: 'Budget consolidé',
       href: '/budget',

@@ -54,3 +54,4 @@ echo "💡 Les services s'exécutent dans des terminaux séparés"
 echo "💡 Appuyez sur Ctrl+C dans chaque terminal pour arrêter les services"
 
 
+

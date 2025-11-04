@@ -36,3 +36,4 @@ CREATE INDEX IF NOT EXISTS "divisions_administratives_sousPrefecture_idx" ON "di
 CREATE INDEX IF NOT EXISTS "divisions_administratives_commune_idx" ON "divisions_administratives"("commune");
 
 
+

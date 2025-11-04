@@ -107,7 +107,7 @@ export default function DashboardAdminSimple() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12.5M XAF</div>
+                <div className="text-2xl font-bold">12.5M FCFA</div>
                 <p className="text-xs text-muted-foreground">Budget consolidé</p>
                 <p className="text-xs text-purple-500 mt-1">Cliquez ici →</p>
               </CardContent>

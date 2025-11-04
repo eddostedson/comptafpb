@@ -332,6 +332,7 @@ enum TypeSourceRecette {
   FBP
   CMU
   SOLDE_BANCAIRE
+  REMBOURSEMENT_A_RECEVOIR
 }
 
 enum SourceFinancement {

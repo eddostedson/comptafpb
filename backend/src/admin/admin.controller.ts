@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
@@ -28,7 +29,6 @@ import { RoleType } from '@prisma/client';
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@Roles(RoleType.ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -37,6 +37,7 @@ export class AdminController {
   // ========================================
 
   @Post('regisseurs')
+  @Roles(RoleType.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Créer un nouveau régisseur' })
   @ApiResponse({ status: 201, description: 'Régisseur créé avec succès' })
@@ -47,6 +48,7 @@ export class AdminController {
   }
 
   @Get('regisseurs')
+  @Roles(RoleType.ADMIN)
   @ApiOperation({ summary: 'Récupérer tous les régisseurs' })
   @ApiResponse({ status: 200, description: 'Liste des régisseurs' })
   async getAllRegisseurs() {
@@ -129,6 +131,7 @@ export class AdminController {
   // ========================================
 
   @Post('centres')
+  @Roles(RoleType.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Créer un nouveau centre de santé' })
   @ApiResponse({ status: 201, description: 'Centre créé avec succès' })
@@ -140,11 +143,20 @@ export class AdminController {
   }
 
   @Get('centres')
-  @ApiOperation({ summary: 'Récupérer tous les centres de santé' })
+  @Roles(RoleType.ADMIN, RoleType.REGISSEUR)
+  @ApiOperation({ summary: 'Récupérer tous les centres de santé (ou centres du régisseur si rôle REGISSEUR)' })
   @ApiResponse({ status: 200, description: 'Liste des centres' })
   @ApiResponse({ status: 500, description: 'Erreur serveur' })
-  async getAllCentres() {
+  async getAllCentres(@Req() req: any) {
     try {
+      const user = req.user;
+      
+      // Si c'est un régisseur, retourner uniquement ses centres
+      if (user.role === RoleType.REGISSEUR && user.regisseurId) {
+        return await this.adminService.getCentresByRegisseur(user.regisseurId);
+      }
+      
+      // Sinon, retourner tous les centres (admin uniquement)
       return await this.adminService.getAllCentres();
     } catch (error) {
       console.error('Erreur lors de la récupération des centres:', error);

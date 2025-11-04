@@ -5,10 +5,10 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-  IsDecimal,
+  IsNumberString,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { TypeBudget } from '@prisma/client';
 
 export enum TypeSourceRecetteDto {
@@ -16,6 +16,10 @@ export enum TypeSourceRecetteDto {
   RESSOURCES_PROPRES = 'RESSOURCES_PROPRES',
   PTF = 'PTF',
   DONS_LEGS = 'DONS_LEGS',
+  FBP = 'FBP',
+  CMU = 'CMU',
+  SOLDE_BANCAIRE = 'SOLDE_BANCAIRE',
+  REMBOURSEMENT_A_RECEVOIR = 'REMBOURSEMENT_A_RECEVOIR',
 }
 
 export enum SourceFinancementDto {
@@ -34,8 +38,21 @@ export class SourceRecetteDto {
   @IsString()
   nature?: string;
 
-  @IsDecimal({ decimal_digits: '0,2' })
-  @Min(0)
+  @Transform(({ value }) => {
+    // Convertir en string et nettoyer
+    if (value === null || value === undefined) {
+      return '0';
+    }
+    if (typeof value === 'number') {
+      return String(value);
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? '0' : trimmed;
+    }
+    return String(value);
+  })
+  @IsString()
   montant: string;
 }
 
@@ -46,16 +63,13 @@ export class LigneBudgetaireDto {
   @IsString()
   typeMoyens: string;
 
-  @IsDecimal({ decimal_digits: '0,2' })
-  @Min(0)
+  @IsNumberString({}, { message: 'La quantité doit être un nombre valide' })
   quantite: string;
 
-  @IsDecimal({ decimal_digits: '0,2' })
-  @Min(0)
+  @IsNumberString({}, { message: 'La fréquence doit être un nombre valide' })
   frequence: string;
 
-  @IsDecimal({ decimal_digits: '0,2' })
-  @Min(0)
+  @IsNumberString({}, { message: 'Le coût unitaire doit être un nombre valide' })
   coutUnitaire: string;
 
   @IsOptional()

@@ -22,8 +22,15 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Temporairement désactivé pour debug
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      exceptionFactory: (errors) => {
+        console.error('[ValidationPipe] Erreurs de validation:', JSON.stringify(errors, null, 2));
+        return new ValidationPipe().createExceptionFactory()(errors);
+      },
     }),
   );
 

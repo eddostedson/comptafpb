@@ -171,3 +171,4 @@ pm2 start ecosystem.config.js
 Ces solutions garantissent que le backend **redémarre automatiquement** même en cas de crash ou d'erreur fatale.
 
 
+
