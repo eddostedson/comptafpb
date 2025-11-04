@@ -238,9 +238,22 @@ export class BudgetService {
     // Si rejeté, permettre la modification pour corriger
 
     // Recalculer si sources ou lignes modifiées
-    if (dto.sourcesRecettes || dto.lignesBudgetaires) {
-      const sources = dto.sourcesRecettes || (await this.getSourcesRecettes(id));
-      const lignes = dto.lignesBudgetaires || (await this.getLignesBudgetaires(id));
+    if (dto.sourcesRecettes !== undefined || dto.lignesBudgetaires !== undefined) {
+      // Utiliser les sources envoyées si elles sont non vides, sinon récupérer celles existantes
+      let sources: any[];
+      if (dto.sourcesRecettes !== undefined && dto.sourcesRecettes.length > 0) {
+        sources = dto.sourcesRecettes;
+      } else {
+        sources = await this.getSourcesRecettes(id);
+      }
+      
+      // Utiliser les lignes envoyées si elles sont non vides, sinon récupérer celles existantes
+      let lignes: any[];
+      if (dto.lignesBudgetaires !== undefined && dto.lignesBudgetaires.length > 0) {
+        lignes = dto.lignesBudgetaires;
+      } else {
+        lignes = await this.getLignesBudgetaires(id);
+      }
 
       const { totalRecettes, totalDepenses, recettesParSource, depensesParSource } =
         this.calculateTotals(sources, lignes);
@@ -255,17 +268,22 @@ export class BudgetService {
     if (dto.annee !== undefined) updateData.annee = dto.annee;
     if (dto.type !== undefined) updateData.type = dto.type;
 
-    if (dto.sourcesRecettes) {
-      // Supprimer les anciennes sources
-      await this.prisma.sourceRecette.deleteMany({ where: { budgetId: id } });
-      // Créer les nouvelles
-      updateData.sourcesRecettes = {
-        create: dto.sourcesRecettes.map((s) => ({
-          type: s.type as TypeSourceRecette,
-          nature: s.nature,
-          montant: new Decimal(s.montant),
-        })),
-      };
+    if (dto.sourcesRecettes !== undefined) {
+      // Supprimer les anciennes sources seulement si on fournit de nouvelles sources
+      if (dto.sourcesRecettes.length > 0) {
+        await this.prisma.sourceRecette.deleteMany({ where: { budgetId: id } });
+        // Créer les nouvelles
+        updateData.sourcesRecettes = {
+          create: dto.sourcesRecettes.map((s) => ({
+            type: s.type as TypeSourceRecette,
+            nature: s.nature,
+            montant: new Decimal(s.montant),
+          })),
+        };
+      } else {
+        // Si tableau vide, ne pas supprimer les sources existantes
+        // L'utilisateur veut peut-être juste mettre à jour les lignes budgétaires
+      }
     }
 
     if (dto.lignesBudgetaires) {
@@ -450,6 +468,104 @@ export class BudgetService {
     });
   }
 
+  /**
+   * Récupérer les suggestions d'activités clés basées sur toutes les lignes budgétaires existantes
+   */
+  async getActiviteCleSuggestions(query?: string) {
+    try {
+      const where: any = {
+        activiteCle: { 
+          not: null,
+        },
+      };
+      
+      if (query && query.trim()) {
+        where.activiteCle = {
+          contains: query.trim(),
+          mode: 'insensitive',
+          not: null,
+        };
+      }
+
+      const lignes = await this.prisma.ligneBudgetaire.findMany({
+        where,
+        select: {
+          activiteCle: true,
+        },
+        take: 200, // Prendre plus de résultats pour ensuite dédupliquer
+      });
+
+      // Dédupliquer les valeurs en utilisant un Set
+      const uniqueActivites = new Set<string>();
+      lignes.forEach((l) => {
+        if (l.activiteCle && typeof l.activiteCle === 'string' && l.activiteCle.trim()) {
+          uniqueActivites.add(l.activiteCle.trim());
+        }
+      });
+
+      // Convertir en tableau, trier et retourner les 15 premiers
+      const sorted = Array.from(uniqueActivites).sort((a, b) => 
+        a.localeCompare(b, 'fr', { sensitivity: 'base' })
+      );
+      
+      return sorted.slice(0, 15);
+    } catch (error: any) {
+      console.error('[BudgetService] Erreur getActiviteCleSuggestions:', error);
+      console.error('[BudgetService] Stack:', error.stack);
+      // Retourner un tableau vide en cas d'erreur plutôt que de throw
+      return [];
+    }
+  }
+
+  /**
+   * Récupérer les suggestions de types de moyens basées sur toutes les lignes budgétaires existantes
+   */
+  async getTypeMoyensSuggestions(query?: string) {
+    try {
+      const where: any = {
+        typeMoyens: { 
+          not: null,
+        },
+      };
+      
+      if (query && query.trim()) {
+        where.typeMoyens = {
+          contains: query.trim(),
+          mode: 'insensitive',
+          not: null,
+        };
+      }
+
+      const lignes = await this.prisma.ligneBudgetaire.findMany({
+        where,
+        select: {
+          typeMoyens: true,
+        },
+        take: 200, // Prendre plus de résultats pour ensuite dédupliquer
+      });
+
+      // Dédupliquer les valeurs en utilisant un Set
+      const uniqueTypes = new Set<string>();
+      lignes.forEach((l) => {
+        if (l.typeMoyens && typeof l.typeMoyens === 'string' && l.typeMoyens.trim()) {
+          uniqueTypes.add(l.typeMoyens.trim());
+        }
+      });
+
+      // Convertir en tableau, trier et retourner les 15 premiers
+      const sorted = Array.from(uniqueTypes).sort((a, b) => 
+        a.localeCompare(b, 'fr', { sensitivity: 'base' })
+      );
+      
+      return sorted.slice(0, 15);
+    } catch (error: any) {
+      console.error('[BudgetService] Erreur getTypeMoyensSuggestions:', error);
+      console.error('[BudgetService] Stack:', error.stack);
+      // Retourner un tableau vide en cas d'erreur plutôt que de throw
+      return [];
+    }
+  }
+
   // Méthodes privées
 
   private calculateTotals(
@@ -493,17 +609,39 @@ export class BudgetService {
       RESSOURCES_PROPRES: 'RP',
       PTF: 'AUTRES',
       DONS_LEGS: 'AUTRES',
+      FBP: 'FBP',
+      CMU: 'CMU',
+      SOLDE_BANCAIRE: 'SOLDE_BANCAIRE',
+      REMBOURSEMENT_A_RECEVOIR: 'REMBOURSEMENT_A_RECEVOIR',
     };
 
     for (const [source, montant] of Object.entries(depensesParSource)) {
-      const recetteKey = Object.keys(recettesParSource).find(
-        (k) => mapping[k] === source || k === source,
-      );
+      // Chercher d'abord une correspondance directe
+      let recetteKey = Object.keys(recettesParSource).find((k) => k === source);
+      
+      // Si pas de correspondance directe, utiliser le mapping inverse (source de financement -> type de recette)
+      if (!recetteKey) {
+        // Mapping inverse : source de financement -> type de recette
+        const reverseMapping: Record<string, string> = {
+          'FBP': 'FBP',
+          'CMU': 'CMU',
+          'RP': 'RESSOURCES_PROPRES',
+          'BE': 'BE',
+          'AUTRES': 'PTF', // ou DONS_LEGS
+        };
+        
+        const mappedType = reverseMapping[source];
+        if (mappedType) {
+          recetteKey = Object.keys(recettesParSource).find((k) => k === mappedType);
+        }
+      }
+      
       const recetteMontant = recettesParSource[recetteKey || ''] || 0;
 
       if (montant > recetteMontant) {
+        const recetteType = recetteKey || 'aucune';
         throw new BadRequestException(
-          `Les dépenses pour ${source} (${montant}) dépassent les recettes (${recetteMontant})`,
+          `Les dépenses pour ${source} (${montant.toLocaleString('fr-FR')} FCFA) dépassent les recettes ${recetteType !== 'aucune' ? `pour ${recetteType}` : ''} (${recetteMontant.toLocaleString('fr-FR')} FCFA). Veuillez ajouter des sources de recettes pour ${source} à l'étape 1.`,
         );
       }
     }

@@ -25,3 +25,6 @@ CREATE INDEX IF NOT EXISTS "nbe_lines_sousCategorie_idx" ON "nbe_lines" ("sousCa
 
 
 
+
+
+

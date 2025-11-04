@@ -18,14 +18,27 @@ export const authOptions: NextAuthOptions = {
         try {
           // Déterminer l'URL de l'API selon l'environnement
           // Cette fonction s'exécute côté serveur (dans l'API route Next.js)
-          // Utiliser NEXT_PUBLIC_API_URL si disponible, sinon localhost
+          // Utiliser API_URL_SERVER si disponible, sinon construire depuis NEXT_PUBLIC_API_URL ou localhost
           // Pour Docker, l'URL devrait être définie dans les variables d'environnement
-          const apiUrl = process.env.API_URL_SERVER || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+          let apiUrl = process.env.API_URL_SERVER;
           
-          // Normaliser l'URL (supprimer /api à la fin si présent)
-          const normalizedUrl = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+          if (!apiUrl) {
+            // Si API_URL_SERVER n'est pas défini, essayer de construire depuis NEXT_PUBLIC_API_URL
+            // Note: NEXT_PUBLIC_API_URL est accessible côté serveur aussi
+            const publicApiUrl = process.env.NEXT_PUBLIC_API_URL;
+            if (publicApiUrl) {
+              // Si l'URL contient déjà /api, l'utiliser tel quel, sinon l'ajouter
+              apiUrl = publicApiUrl.endsWith('/api') ? publicApiUrl : `${publicApiUrl}/api`;
+            } else {
+              // Fallback par défaut
+              apiUrl = 'http://localhost:3001/api';
+            }
+          }
           
-          console.log('[Auth] Tentative de connexion à:', normalizedUrl);
+          // S'assurer que l'URL ne se termine pas par /api/api
+          const normalizedUrl = apiUrl.endsWith('/api') ? apiUrl.replace(/\/api\/$/, '/api') : apiUrl;
+          
+          console.log('[Auth] Tentative de connexion à:', `${normalizedUrl}/auth/login`);
           
           const response = await fetch(`${normalizedUrl}/auth/login`, {
             method: 'POST',

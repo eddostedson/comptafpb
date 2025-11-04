@@ -8,3 +8,6 @@ ALTER TYPE "TypeSourceRecette" ADD VALUE IF NOT EXISTS 'SOLDE_BANCAIRE';
 
 
 
+
+
+

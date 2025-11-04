@@ -352,12 +352,33 @@ export default function BudgetForm({ budgetId: initialBudgetId, onSave, onCancel
     setLoading(true);
     try {
       const token = await (session as any)?.accessToken;
+      
+      // Si on a un budgetId et que les sources ne sont pas validées, les charger depuis le backend
+      let sourcesToSend = sourcesRecettes;
+      if (budgetId && sourcesRecettes.length === 0) {
+        try {
+          const budgetData = await apiClient.get(`/budgets/${budgetId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (budgetData.data.sourcesRecettes && budgetData.data.sourcesRecettes.length > 0) {
+            sourcesToSend = budgetData.data.sourcesRecettes.map((s: any) => ({
+              type: s.type,
+              nature: s.nature || '',
+              montant: String(s.montant || '0'),
+            }));
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement des sources:', error);
+          // Continuer avec les sources vides
+        }
+      }
+      
       const data = {
         nom,
         description,
         annee,
         type,
-        sourcesRecettes,
+        sourcesRecettes: sourcesToSend,
         lignesBudgetaires,
       };
 
@@ -381,8 +402,19 @@ export default function BudgetForm({ budgetId: initialBudgetId, onSave, onCancel
       }
     } catch (error: any) {
       console.error('Erreur sauvegarde dépenses:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde des dépenses');
-      throw error;
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la sauvegarde des dépenses';
+      
+      // Afficher le message d'erreur avec une durée plus longue pour les erreurs de validation
+      if (errorMessage.includes('dépenses') && errorMessage.includes('recettes')) {
+        toast.error(errorMessage, {
+          duration: 10000,
+        });
+        // Ne pas throw l'erreur pour permettre à l'utilisateur de voir le message et de corriger
+        // Le throw empêcherait la progression, mais l'utilisateur peut cliquer sur "Précédent"
+      } else {
+        toast.error(errorMessage);
+        throw error;
+      }
     } finally {
       setLoading(false);
     }

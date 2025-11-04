@@ -17,3 +17,6 @@ COMMENT ON COLUMN "users"."code" IS 'Code fonctionnel unique (ex: CC-001 pour ch
 
 
 
+
+
+

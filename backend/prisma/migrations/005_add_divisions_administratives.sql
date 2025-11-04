@@ -37,3 +37,6 @@ CREATE INDEX IF NOT EXISTS "divisions_administratives_commune_idx" ON "divisions
 
 
 
+
+
+

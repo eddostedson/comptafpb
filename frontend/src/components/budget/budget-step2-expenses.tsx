@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,15 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
   
   // État pour le filtre par source de financement
   const [filterSourceFinancement, setFilterSourceFinancement] = useState<string>('');
+
+  // États pour l'autocomplétion des activités clés et types de moyens
+  const [activiteCleSuggestions, setActiviteCleSuggestions] = useState<string[]>([]);
+  const [showActiviteCleDropdown, setShowActiviteCleDropdown] = useState<boolean>(false);
+  const [typeMoyensSuggestions, setTypeMoyensSuggestions] = useState<string[]>([]);
+  const [showTypeMoyensDropdown, setShowTypeMoyensDropdown] = useState<boolean>(false);
+  
+  // État pour afficher/masquer le tableau récapitulatif
+  const [showRecapitulatif, setShowRecapitulatif] = useState<boolean>(false);
   
   // États pour le modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,9 +92,95 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
     sourceFinancement: 'FBP',
   });
 
+  // Refs pour les champs du formulaire
+  const quantiteInputRef = useRef<HTMLInputElement>(null);
+  const lastRowRef = useRef<HTMLTableRowElement>(null);
+  const lastAddedIdRef = useRef<string | null>(null);
+
+  // Charger les suggestions d'activités clés
+  const loadActiviteCleSuggestions = useCallback(async (query?: string) => {
+    try {
+      const token = (session as any)?.accessToken;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const params = query ? { q: query } : {};
+      const res = await apiClient.get('/budgets/suggestions/activites-cles', { params, headers });
+      setActiviteCleSuggestions(res.data || []);
+    } catch (error: any) {
+      console.error('[Suggestions] Erreur chargement activités clés:', error);
+      // Ne pas afficher d'erreur toast pour les suggestions (silencieux)
+    }
+  }, [session]);
+
+  // Charger les suggestions de types de moyens
+  const loadTypeMoyensSuggestions = useCallback(async (query?: string) => {
+    try {
+      const token = (session as any)?.accessToken;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const params = query ? { q: query } : {};
+      const res = await apiClient.get('/budgets/suggestions/types-moyens', { params, headers });
+      setTypeMoyensSuggestions(res.data || []);
+    } catch (error: any) {
+      console.error('[Suggestions] Erreur chargement types de moyens:', error);
+      // Ne pas afficher d'erreur toast pour les suggestions (silencieux)
+    }
+  }, [session]);
+
   useEffect(() => {
     loadNbeLines();
   }, []);
+
+  // Debounce pour les suggestions d'activités clés
+  useEffect(() => {
+    if (currentForm.activiteCle.length >= 2) {
+      const timeoutId = setTimeout(() => {
+        loadActiviteCleSuggestions(currentForm.activiteCle);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setActiviteCleSuggestions([]);
+      setShowActiviteCleDropdown(false);
+    }
+  }, [currentForm.activiteCle, loadActiviteCleSuggestions]);
+
+  // Debounce pour les suggestions de types de moyens
+  useEffect(() => {
+    if (currentForm.typeMoyens.length >= 2) {
+      const timeoutId = setTimeout(() => {
+        loadTypeMoyensSuggestions(currentForm.typeMoyens);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    } else {
+      setTypeMoyensSuggestions([]);
+      setShowTypeMoyensDropdown(false);
+    }
+  }, [currentForm.typeMoyens, loadTypeMoyensSuggestions]);
+
+  // Effet pour faire défiler vers la dernière ligne ajoutée quand elle apparaît
+  useEffect(() => {
+    if (lastAddedIdRef.current && lastRowRef.current) {
+      // Délai pour laisser le DOM se mettre à jour
+      setTimeout(() => {
+        if (lastRowRef.current) {
+          lastRowRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Mettre en surbrillance la ligne ajoutée
+          lastRowRef.current.classList.add('bg-green-50');
+          lastRowRef.current.style.borderLeft = '4px solid #10b981';
+          setTimeout(() => {
+            lastRowRef.current?.classList.remove('bg-green-50');
+            if (lastRowRef.current) {
+              lastRowRef.current.style.borderLeft = '';
+            }
+            // Réinitialiser la référence après la surbrillance
+            lastAddedIdRef.current = null;
+          }, 2000);
+        }
+      }, 100);
+    }
+  }, [lignes.length]);
 
   // Correspondance automatique NBE pour le formulaire modal
   useEffect(() => {
@@ -311,6 +406,8 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
         }
       } else {
         // Ajout
+        const savedForm = { ...currentForm };
+        
         if (budgetId) {
           // Sauvegarder immédiatement en base de données
           try {
@@ -330,8 +427,40 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
             );
             
             // Ajouter la ligne avec son ID
-            onChange([...lignes, { ...currentForm, id: response.data.id }]);
-            toast.success('Dépense ajoutée et sauvegardée avec succès');
+            const newLigne = { ...currentForm, id: response.data.id };
+            onChange([...lignes, newLigne]);
+            
+            // Stocker l'ID de la dernière ligne ajoutée pour le scroll
+            lastAddedIdRef.current = response.data.id;
+            
+            // Afficher un message de confirmation
+            toast.success('✓ Dépense ajoutée et sauvegardée avec succès !', {
+              duration: 3000,
+            });
+            
+            // Rouvrir automatiquement le modal avec les informations du précédent (sauf montant)
+            setTimeout(() => {
+              setCurrentForm({
+                activiteCle: savedForm.activiteCle,
+                typeMoyens: savedForm.typeMoyens,
+                ligneNbe: savedForm.ligneNbe,
+                libelleNbe: savedForm.libelleNbe,
+                sourceFinancement: savedForm.sourceFinancement,
+                quantite: '1',
+                frequence: '1',
+                coutUnitaire: '0', // Réinitialisé à 0
+              });
+              setSearchNbe('');
+              setShowNbeDropdown(false);
+              setIsModalOpen(true);
+              
+              // Focus sur le champ quantité après réouverture
+              setTimeout(() => {
+                quantiteInputRef.current?.focus();
+              }, 100);
+            }, 500);
+            
+            return; // Ne pas fermer le modal, on le rouvre automatiquement
           } catch (error: any) {
             console.error('Erreur lors de la sauvegarde de la dépense:', error);
             toast.error(error.response?.data?.message || 'Erreur lors de la sauvegarde de la dépense');
@@ -339,8 +468,39 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
           }
         } else {
           // Pas encore de budgetId, juste ajouter au state local
-          onChange([...lignes, { ...currentForm }]);
-          toast.success('Dépense ajoutée avec succès');
+          const tempId = `temp-${Date.now()}`;
+          const newLigne = { ...currentForm, id: tempId };
+          onChange([...lignes, newLigne]);
+          
+          // Stocker l'ID temporaire pour le scroll
+          lastAddedIdRef.current = tempId;
+          
+          // Afficher un message de confirmation
+          toast.success('✓ Dépense ajoutée avec succès !', {
+            duration: 3000,
+          });
+          
+          // Rouvrir automatiquement le modal avec les informations du précédent (sauf montant)
+          setTimeout(() => {
+            setCurrentForm({
+              activiteCle: savedForm.activiteCle,
+              typeMoyens: savedForm.typeMoyens,
+              ligneNbe: savedForm.ligneNbe,
+              libelleNbe: savedForm.libelleNbe,
+              sourceFinancement: savedForm.sourceFinancement,
+              quantite: '1',
+              frequence: '1',
+              coutUnitaire: '0', // Réinitialisé à 0
+            });
+            setSearchNbe('');
+            setShowNbeDropdown(false);
+            setIsModalOpen(true);
+            
+            // Focus sur le champ quantité après réouverture
+            setTimeout(() => {
+              quantiteInputRef.current?.focus();
+            }, 100);
+          }, 500);
           
           // Essayer la sauvegarde automatique via onAutoSave pour créer le budget
           if (onAutoSave) {
@@ -350,10 +510,15 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
               });
             }, 300);
           }
+          
+          return; // Ne pas fermer le modal, on le rouvre automatiquement
         }
       }
 
-      handleCloseModal();
+      // Pour les modifications, on ferme le modal normalement
+      if (editIndex !== null) {
+        handleCloseModal();
+      }
     } finally {
       setIsSaving(false);
     }
@@ -419,6 +584,11 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
     
     setSearchNbe(codeNbe);
     setShowNbeDropdown(false);
+    
+    // Positionner automatiquement le curseur sur le champ "Quantité"
+    setTimeout(() => {
+      quantiteInputRef.current?.focus();
+    }, 100);
   };
 
   const getFilteredNbe = () => {
@@ -441,15 +611,55 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
       filtered = filtered.filter((ligne) => ligne.sourceFinancement === filterSourceFinancement);
     }
     
-    // Filtre par terme de recherche (type de moyens, activité clé, code NBE, etc.)
+    // Filtre par terme de recherche (type de moyens, activité clé, code NBE, montant, etc.)
     if (searchTypeMoyens.trim()) {
-      const searchLower = searchTypeMoyens.toLowerCase().trim();
+      const searchTerm = searchTypeMoyens.trim();
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Vérifier si le terme de recherche est un nombre (potentiellement un montant)
+      const isNumericSearch = /^\d+$/.test(searchTerm);
+      
       filtered = filtered.filter((ligne) => {
+        // Recherche dans les champs texte
         const typeMoyensMatch = ligne.typeMoyens?.toLowerCase().includes(searchLower);
         const activiteCleMatch = ligne.activiteCle?.toLowerCase().includes(searchLower);
         const ligneNbeMatch = ligne.ligneNbe?.toLowerCase().includes(searchLower);
         const libelleNbeMatch = ligne.libelleNbe?.toLowerCase().includes(searchLower);
-        return typeMoyensMatch || activiteCleMatch || ligneNbeMatch || libelleNbeMatch;
+        
+        // Recherche dans les montants si le terme est numérique
+        let montantMatch = false;
+        if (isNumericSearch) {
+          const searchNumber = parseInt(searchTerm, 10);
+          
+          // Calculer le montant de la ligne
+          const montant = Number(ligne.quantite || 1) * Number(ligne.frequence || 1) * Number(ligne.coutUnitaire || 0);
+          const montantNumber = Math.round(montant);
+          
+          // Correspondance exacte du montant total
+          if (montantNumber === searchNumber) {
+            montantMatch = true;
+          }
+          
+          // Recherche dans le coût unitaire (correspondance exacte uniquement)
+          const coutUnitaire = Math.round(Number(ligne.coutUnitaire || 0));
+          if (coutUnitaire === searchNumber) {
+            montantMatch = true;
+          }
+          
+          // Recherche dans la quantité (correspondance exacte uniquement)
+          const quantite = Math.round(Number(ligne.quantite || 1));
+          if (quantite === searchNumber) {
+            montantMatch = true;
+          }
+          
+          // Recherche dans la fréquence (correspondance exacte uniquement)
+          const frequence = Math.round(Number(ligne.frequence || 1));
+          if (frequence === searchNumber) {
+            montantMatch = true;
+          }
+        }
+        
+        return typeMoyensMatch || activiteCleMatch || ligneNbeMatch || libelleNbeMatch || montantMatch;
       });
     }
     
@@ -472,6 +682,21 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
       sum + Number(l.quantite || 1) * Number(l.frequence || 1) * Number(l.coutUnitaire || 0),
     0
   );
+
+  // Calculer les totaux par source de financement (toujours à partir de toutes les lignes, pas filtrées)
+  const totauxParSource = React.useMemo(() => {
+    const totaux: Record<string, number> = {};
+    lignes.forEach((ligne) => {
+      const source = ligne.sourceFinancement || 'AUTRES';
+      const montant = Number(ligne.quantite || 1) * Number(ligne.frequence || 1) * Number(ligne.coutUnitaire || 0);
+      totaux[source] = (totaux[source] || 0) + montant;
+    });
+    console.log('[BudgetStep2] Totaux par source calculés:', totaux);
+    console.log('[BudgetStep2] Nombre de lignes:', lignes.length);
+    console.log('[BudgetStep2] Clés de totaux:', Object.keys(totaux));
+    console.log('[BudgetStep2] totauxParSource sera affiché:', Object.keys(totaux).length > 0);
+    return totaux;
+  }, [lignes]);
 
   const totalRecettes = sourcesRecettes.reduce((sum, s) => sum + Number(s.montant || 0), 0);
 
@@ -533,12 +758,12 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
                 {/* Champ de recherche texte */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-blue-800">
-                    Rechercher par Type de moyens, Activité clé, ou Code NBE
+                    Rechercher par Type de moyens, Activité clé, Code NBE ou Montant
                   </label>
                   <Input
                     value={searchTypeMoyens}
                     onChange={(e) => setSearchTypeMoyens(e.target.value)}
-                    placeholder="Ex: Carburants, 6012, Consultation..."
+                    placeholder="Ex: Carburants, 6012, Consultation, 2000..."
                     className="bg-white"
                   />
                 </div>
@@ -607,8 +832,14 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
                        l.ligneNbe === ligne.ligneNbe)
                     );
                     const montant = Number(ligne.quantite || 1) * Number(ligne.frequence || 1) * Number(ligne.coutUnitaire || 0);
+                    // Vérifier si c'est la dernière ligne ajoutée en comparant avec l'ID stocké
+                    const isLastAdded = ligne.id === lastAddedIdRef.current;
                     return (
-                      <TableRow key={index} className="hover:bg-slate-50">
+                      <TableRow 
+                        key={ligne.id || index} 
+                        ref={isLastAdded ? lastRowRef : null}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
                         <TableCell className="max-w-[200px]">
                           <div className="text-sm">{ligne.activiteCle}</div>
                         </TableCell>
@@ -653,6 +884,62 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
                       </TableRow>
                     );
                   })}
+                  
+                  {/* Lignes de total par source de financement - TOUJOURS AFFICHÉES */}
+                  {totauxParSource && Object.keys(totauxParSource).length > 0 && (
+                    <>
+                      {Object.entries(totauxParSource)
+                        .sort(([a], [b]) => {
+                          const order: Record<string, number> = { FBP: 1, CMU: 2, RP: 3, BE: 4, AUTRES: 5 };
+                          return (order[a] || 99) - (order[b] || 99);
+                        })
+                        .map(([source, totalSource]) => (
+                          <TableRow 
+                            key={`total-${source}`}
+                            className="bg-gray-100 font-bold hover:bg-gray-100 border-t-2 border-gray-400"
+                          >
+                            <TableCell></TableCell>
+                            <TableCell className="text-right font-bold text-slate-800">
+                              COÛT DES ACTIVITÉS {source}
+                            </TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-center">
+                              <span className="px-2 py-1 bg-blue-200 text-blue-900 rounded text-xs font-bold">
+                                {source}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-blue-700">
+                              {totalSource.toLocaleString('fr-FR')} FCFA
+                            </TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        ))}
+                      
+                      {/* Ligne de total général */}
+                      <TableRow 
+                        className="bg-blue-100 font-bold hover:bg-blue-100 border-t-2 border-blue-500"
+                      >
+                        <TableCell></TableCell>
+                        <TableCell className="text-right font-bold text-lg text-blue-900">
+                          TOTAL GÉNÉRAL
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-center"></TableCell>
+                        <TableCell className="text-right font-bold text-lg text-blue-900">
+                          {total.toLocaleString('fr-FR')} FCFA
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -688,12 +975,12 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
         </Card>
       )}
 
-      {/* Total des dépenses */}
-      <div className="flex justify-end">
-        <Card className="w-auto min-w-[300px]">
+      {/* Total des dépenses et bouton Valider */}
+      <div className="space-y-4 mt-4">
+        <Card className="w-full">
           <CardContent className="p-4">
             <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-slate-700">Total des dépenses</span>
+              <span className="text-lg font-semibold text-slate-700">Total Dépenses</span>
               <span className="text-2xl font-bold text-red-600">{total.toLocaleString('fr-FR')} FCFA</span>
             </div>
             {sourcesRecettes.length > 0 && total > totalRecettes && (
@@ -703,7 +990,97 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
             )}
           </CardContent>
         </Card>
+        
+        {/* Bouton Valider - Affiché en pleine largeur */}
+        {lignes.length > 0 && (
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setShowRecapitulatif(!showRecapitulatif)}
+              className="bg-green-600 hover:bg-green-700 text-white px-12 py-3 text-lg font-semibold shadow-lg"
+              size="lg"
+            >
+              <CheckCircle className="w-5 h-5 mr-2" />
+              {showRecapitulatif ? 'Masquer le Récapitulatif' : 'Valider et Afficher le Récapitulatif'}
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Tableau récapitulatif */}
+      {showRecapitulatif && lignes.length > 0 && (
+        <Card className="mt-6 border-2 border-blue-300 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+            <CardTitle className="text-2xl font-bold text-blue-900 text-center">
+              Récapitulatif des Coûts par Source de Financement
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableBody>
+                  {/* Ligne CMU */}
+                  <TableRow className="border-b border-slate-200">
+                    <TableCell className="py-4 px-6 font-semibold text-slate-700 text-base bg-slate-50">
+                      COÛT DES ACTIVITÉS CMU
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-right font-bold text-slate-900 text-lg bg-slate-50">
+                      {(totauxParSource['CMU'] || 0).toLocaleString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Ligne RP */}
+                  <TableRow className="border-b border-slate-200">
+                    <TableCell className="py-4 px-6 font-semibold text-slate-700 text-base">
+                      COÛT DES ACTIVITES RP
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-right font-bold text-slate-900 text-lg">
+                      {(totauxParSource['RP'] || 0).toLocaleString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Ligne BU (BE dans le code) */}
+                  <TableRow className="border-b border-slate-200">
+                    <TableCell className="py-4 px-6 font-semibold text-slate-700 text-base bg-slate-50">
+                      COÛT DES ACTIVITES BU
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-right font-bold text-slate-900 text-lg bg-slate-50">
+                      {(totauxParSource['BE'] || 0).toLocaleString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Ligne AUTRES RESSOURCES */}
+                  <TableRow className="border-b-2 border-slate-400">
+                    <TableCell className="py-4 px-6 font-semibold text-slate-700 text-base">
+                      COÛT DES ACTIVITES (AUTRES RESSOURCES)
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-right font-bold text-slate-900 text-lg">
+                      {(totauxParSource['AUTRES'] || 0).toLocaleString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                  
+                  {/* Ligne de total général */}
+                  <TableRow className="bg-gradient-to-r from-blue-100 to-indigo-100 border-t-2 border-blue-400">
+                    <TableCell className="py-5 px-6 font-bold text-xl text-blue-900">
+                      COÛT TOTAL DES ACTIVITÉS
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right font-bold text-2xl text-blue-700">
+                      {total.toLocaleString('fr-FR')}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Note de signature */}
+            <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
+              <div className="text-center">
+                <p className="text-sm text-slate-600 mb-12">Signature</p>
+                <div className="border-b-2 border-slate-400 w-48"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal flottant pour ajouter/modifier une dépense */}
       <Dialog open={isModalOpen} onOpenChange={handleDialogOpenChange}>
@@ -740,21 +1117,109 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
           <div className="space-y-4 py-4">
             {/* Activité clé et Type de moyens */}
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium mb-2">Activité clé *</label>
-                <Input
-                  value={currentForm.activiteCle}
-                  onChange={(e) => handleUpdateForm('activiteCle', e.target.value)}
-                  placeholder="Ex: Assurer la motivation du personnel"
-                />
+                <div className="relative">
+                  <Input
+                    value={currentForm.activiteCle}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleUpdateForm('activiteCle', value);
+                      if (value.length >= 2) {
+                        setShowActiviteCleDropdown(true);
+                      } else {
+                        setShowActiviteCleDropdown(false);
+                        setActiviteCleSuggestions([]);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (currentForm.activiteCle.length >= 2) {
+                        setShowActiviteCleDropdown(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowActiviteCleDropdown(false), 200);
+                    }}
+                    placeholder="Ex: Assurer la motivation du personnel"
+                  />
+                  <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+                  {showActiviteCleDropdown && activiteCleSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {activiteCleSuggestions
+                        .filter((suggestion) => {
+                          const searchLower = currentForm.activiteCle.toLowerCase();
+                          return suggestion.toLowerCase().includes(searchLower);
+                        })
+                        .slice(0, 15)
+                        .map((suggestion, i) => (
+                          <button
+                            key={`activite-${i}-${suggestion}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleUpdateForm('activiteCle', suggestion);
+                              setShowActiviteCleDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b last:border-0 text-sm transition-colors"
+                          >
+                            <div className="text-slate-800">{suggestion}</div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium mb-2">Type de moyens *</label>
-                <Input
-                  value={currentForm.typeMoyens}
-                  onChange={(e) => handleUpdateForm('typeMoyens', e.target.value)}
-                  placeholder="Ex: Prime ASC T1 2024"
-                />
+                <div className="relative">
+                  <Input
+                    value={currentForm.typeMoyens}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleUpdateForm('typeMoyens', value);
+                      if (value.length >= 2) {
+                        setShowTypeMoyensDropdown(true);
+                      } else {
+                        setShowTypeMoyensDropdown(false);
+                        setTypeMoyensSuggestions([]);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (currentForm.typeMoyens.length >= 2) {
+                        setShowTypeMoyensDropdown(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setShowTypeMoyensDropdown(false), 200);
+                    }}
+                    placeholder="Ex: Prime ASC T1 2024"
+                  />
+                  <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+                  {showTypeMoyensDropdown && typeMoyensSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {typeMoyensSuggestions
+                        .filter((suggestion) => {
+                          const searchLower = currentForm.typeMoyens.toLowerCase();
+                          return suggestion.toLowerCase().includes(searchLower);
+                        })
+                        .slice(0, 15)
+                        .map((suggestion, i) => (
+                          <button
+                            key={`type-${i}-${suggestion}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleUpdateForm('typeMoyens', suggestion);
+                              setShowTypeMoyensDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b last:border-0 text-sm transition-colors"
+                          >
+                            <div className="text-slate-800">{suggestion}</div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -831,6 +1296,7 @@ export default function BudgetStep2Expenses({ lignes, onChange, onAutoSave, sour
               <div>
                 <label className="block text-sm font-medium mb-2">Quantité *</label>
                 <Input
+                  ref={quantiteInputRef}
                   type="text"
                   inputMode="decimal"
                   value={currentForm.quantite}

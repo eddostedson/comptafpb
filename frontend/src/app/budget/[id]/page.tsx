@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Edit, Printer, Save, CheckCircle, XCircle, Clock, FileText, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Edit, Printer, Save, CheckCircle, XCircle, Clock, FileText, Trash2, Plus, Search, Filter } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
 import BudgetForm from '@/components/budget/budget-form';
@@ -333,9 +333,35 @@ function BudgetDetailView({ budget, budgetId, onReload }: { budget: any; budgetI
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [sourceToDelete, setSourceToDelete] = useState<any | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSourceFinancement, setFilterSourceFinancement] = useState<string>('all');
 
   const totalRecettes = budget.sourcesRecettes?.reduce((sum: number, s: any) => sum + Number(s.montant), 0) || 0;
-  const totalDepenses = budget.lignesBudgetaires?.reduce((sum: number, l: any) => sum + Number(l.montantActivite || l.montantPrevu || 0), 0) || 0;
+
+  // Filtrer les lignes budgétaires selon le terme de recherche et la source de financement
+  const filteredLignesBudgetaires = useMemo(() => {
+    let filtered = budget.lignesBudgetaires || [];
+
+    // Filtre par terme de recherche
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter((ligne: any) => {
+        const activiteCleMatch = ligne.activiteCle?.toLowerCase().includes(searchLower);
+        const typeMoyensMatch = ligne.typeMoyens?.toLowerCase().includes(searchLower);
+        const ligneNbeMatch = ligne.ligneNbe?.toLowerCase().includes(searchLower);
+        return activiteCleMatch || typeMoyensMatch || ligneNbeMatch;
+      });
+    }
+
+    // Filtre par source de financement
+    if (filterSourceFinancement !== 'all') {
+      filtered = filtered.filter((ligne: any) => ligne.sourceFinancement === filterSourceFinancement);
+    }
+
+    return filtered;
+  }, [budget.lignesBudgetaires, searchTerm, filterSourceFinancement]);
+
+  const totalDepenses = filteredLignesBudgetaires.reduce((sum: number, l: any) => sum + Number(l.montantActivite || l.montantPrevu || 0), 0);
 
   const canEdit = budget.statut === 'BROUILLON' || budget.statut === 'REJETE';
 
@@ -624,35 +650,165 @@ function BudgetDetailView({ budget, budgetId, onReload }: { budget: any; budgetI
           </div>
         </CardHeader>
         <CardContent>
+          {/* Barre de recherche et filtres pour les lignes budgétaires */}
+          {budget.lignesBudgetaires?.length > 0 && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 print:hidden">
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Champ de recherche */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder="Rechercher par activité clé, type de moyens ou code NBE..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-white"
+                  />
+                </div>
+
+                {/* Filtre par source de financement */}
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                  <select
+                    value={filterSourceFinancement}
+                    onChange={(e) => setFilterSourceFinancement(e.target.value)}
+                    className="pl-10 pr-8 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white appearance-none cursor-pointer"
+                  >
+                    <option value="all">Toutes les sources</option>
+                    <option value="FBP">FBP</option>
+                    <option value="CMU">CMU</option>
+                    <option value="RP">RP</option>
+                    <option value="BE">BE</option>
+                    <option value="AUTRES">Autres</option>
+                  </select>
+                </div>
+
+                {/* Bouton pour réinitialiser les filtres */}
+                {(searchTerm || filterSourceFinancement !== 'all') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterSourceFinancement('all');
+                    }}
+                    className="gap-2"
+                  >
+                    Réinitialiser
+                  </Button>
+                )}
+              </div>
+
+              {/* Compteur de résultats */}
+              {(searchTerm || filterSourceFinancement !== 'all') && (
+                <div className="mt-3 text-sm text-slate-600">
+                  Affichage de {filteredLignesBudgetaires.length} ligne(s) sur {budget.lignesBudgetaires?.length || 0}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-slate-100">
-                  <th className="border p-2 text-left text-sm font-medium">Activité Clé</th>
-                  <th className="border p-2 text-left text-sm font-medium">Type de Moyens</th>
-                  <th className="border p-2 text-center text-sm font-medium">Qté</th>
-                  <th className="border p-2 text-center text-sm font-medium">Fréq.</th>
-                  <th className="border p-2 text-right text-sm font-medium">Coût Unitaire</th>
-                  <th className="border p-2 text-right text-sm font-medium">Montant</th>
-                  <th className="border p-2 text-left text-sm font-medium">Ligne NBE</th>
-                  <th className="border p-2 text-left text-sm font-medium">Source</th>
+                  <th className="border p-2 text-left text-sm font-medium min-w-[200px]">Activité Clé</th>
+                  <th className="border p-2 text-left text-sm font-medium min-w-[180px]">Type de Moyens</th>
+                  <th className="border p-2 text-center text-sm font-medium w-16">Qté</th>
+                  <th className="border p-2 text-center text-sm font-medium w-16">Fréq.</th>
+                  <th className="border p-2 text-right text-sm font-medium w-28">Coût Unitaire</th>
+                  <th className="border p-2 text-right text-sm font-medium w-32">Montant</th>
+                  <th className="border p-2 text-left text-sm font-medium w-24">Ligne NBE</th>
+                  <th className="border p-2 text-left text-sm font-medium w-24">Source</th>
+                  {canEdit && (
+                    <th className="border p-2 text-center text-sm font-medium w-24">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {budget.lignesBudgetaires?.map((ligne: any, index: number) => (
-                  <tr key={index} className="hover:bg-slate-50">
-                    <td className="border p-2 text-sm">{ligne.activiteCle}</td>
-                    <td className="border p-2 text-sm">{ligne.typeMoyens}</td>
-                    <td className="border p-2 text-center text-sm">{ligne.quantite}</td>
-                    <td className="border p-2 text-center text-sm">{ligne.frequence}</td>
-                    <td className="border p-2 text-right text-sm">{Number(ligne.coutUnitaire).toLocaleString()}</td>
-                    <td className="border p-2 text-right text-sm font-medium">
-                      {Number(ligne.montantActivite || ligne.montantPrevu || 0).toLocaleString()} FCFA
+                {filteredLignesBudgetaires.length === 0 ? (
+                  <tr>
+                    <td colSpan={canEdit ? 9 : 8} className="border p-8 text-center text-slate-500">
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <Search className="w-12 h-12 text-slate-300 mb-3" />
+                        <p className="text-slate-600 mb-2">Aucune ligne budgétaire ne correspond à votre recherche</p>
+                        {(searchTerm || filterSourceFinancement !== 'all') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSearchTerm('');
+                              setFilterSourceFinancement('all');
+                            }}
+                            className="mt-2 gap-2"
+                          >
+                            Réinitialiser les filtres
+                          </Button>
+                        )}
+                      </div>
                     </td>
-                    <td className="border p-2 text-sm">{ligne.ligneNbe || '-'}</td>
-                    <td className="border p-2 text-sm">{ligne.sourceFinancement}</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredLignesBudgetaires.map((ligne: any, index: number) => {
+                    // Trouver l'index original dans budget.lignesBudgetaires pour les actions
+                    const originalIndex = (budget.lignesBudgetaires || []).findIndex((l: any) => 
+                      l.id === ligne.id || 
+                      (l.activiteCle === ligne.activiteCle && 
+                       l.typeMoyens === ligne.typeMoyens && 
+                       l.ligneNbe === ligne.ligneNbe &&
+                       l.quantite === ligne.quantite &&
+                       l.frequence === ligne.frequence)
+                    );
+                    
+                    return (
+                      <tr key={index} className="hover:bg-slate-50">
+                        <td className="border p-2 text-sm" style={{ minWidth: '200px', maxWidth: '250px', wordWrap: 'break-word', overflowWrap: 'break-word' }}>{ligne.activiteCle}</td>
+                        <td className="border p-2 text-sm" style={{ minWidth: '180px', maxWidth: '220px', wordWrap: 'break-word', overflowWrap: 'break-word', whiteSpace: 'normal' }}>{ligne.typeMoyens}</td>
+                        <td className="border p-2 text-center text-sm">{ligne.quantite}</td>
+                        <td className="border p-2 text-center text-sm">{ligne.frequence}</td>
+                        <td className="border p-2 text-right text-sm">{Number(ligne.coutUnitaire).toLocaleString()}</td>
+                        <td className="border p-2 text-right text-sm font-medium">
+                          {Number(ligne.montantActivite || ligne.montantPrevu || 0).toLocaleString()} FCFA
+                        </td>
+                        <td className="border p-2 text-sm">{ligne.ligneNbe || '-'}</td>
+                        <td className="border p-2 text-sm">{ligne.sourceFinancement}</td>
+                        {canEdit && (
+                          <td className="border p-2 text-center">
+                            <div className="flex gap-1 justify-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(`/budget/create?budgetId=${budgetId}&step=2&sourcesValidated=true&editId=${ligne.id}`)}
+                                className="h-8 w-8 p-0 hover:bg-blue-100"
+                                title="Modifier"
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')) return;
+                                  try {
+                                    const token = (session as any)?.accessToken;
+                                    const headers = { Authorization: `Bearer ${token}` };
+                                    await apiClient.delete(`/budgets/${budgetId}/lignes/${ligne.id}`, { headers });
+                                    toast.success('Dépense supprimée avec succès');
+                                    window.location.reload();
+                                  } catch (error: any) {
+                                    toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
+                                  }
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-red-100"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
               <tfoot>
                 <tr className="bg-blue-50 font-bold">
@@ -660,7 +816,7 @@ function BudgetDetailView({ budget, budgetId, onReload }: { budget: any; budgetI
                   <td className="border p-2 text-right text-xl text-blue-800">
                     {totalDepenses.toLocaleString()} FCFA
                   </td>
-                  <td colSpan={2}></td>
+                  <td colSpan={canEdit ? 3 : 2}></td>
                 </tr>
               </tfoot>
             </table>
@@ -668,30 +824,168 @@ function BudgetDetailView({ budget, budgetId, onReload }: { budget: any; budgetI
         </CardContent>
       </Card>
 
-      {/* Récapitulatif */}
-      <Card className="print:border-0 print:shadow-none bg-gradient-to-br from-blue-50 to-indigo-50">
-        <CardHeader className="print:pb-2">
-          <CardTitle>Récapitulatif</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium text-slate-600">Total Recettes</label>
-              <p className="text-2xl font-bold text-green-700">{totalRecettes.toLocaleString()} FCFA</p>
+      <RapportSection budget={budget} totalDepenses={totalDepenses} />
+    </div>
+  );
+}
+
+function RapportSection({ budget, totalDepenses }: { budget: any; totalDepenses: number }) {
+  const [showRapport, setShowRapport] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<string[]>(['CMU', 'FBP', 'RP', 'BE', 'AUTRES']); // Toutes sélectionnées par défaut
+  
+  const SOURCES_FINANCEMENT = [
+    { value: 'CMU', label: 'CMU' },
+    { value: 'FBP', label: 'FBP' },
+    { value: 'RP', label: 'RP' },
+    { value: 'BE', label: 'BE' },
+    { value: 'AUTRES', label: 'Autres' },
+  ];
+  
+  // Grouper les dépenses par code NBE (ligneNbe) en filtrant par source de financement
+  const depensesParCodeNbe = useMemo(() => {
+    const grouped: Record<string, { code: string; libelle: string; montant: number }> = {};
+    
+    // Filtrer les lignes selon les sources sélectionnées
+    const lignesFiltrees = (budget.lignesBudgetaires || []).filter((ligne: any) => {
+      const source = ligne.sourceFinancement || 'AUTRES';
+      return selectedSources.includes(source);
+    });
+    
+    lignesFiltrees.forEach((ligne: any) => {
+      const codeNbe = ligne.ligneNbe || '';
+      const libelleNbe = ligne.libelleNbe || '';
+      const montant = Number(ligne.montantActivite || ligne.montantPrevu || 0);
+      
+      if (codeNbe) {
+        if (!grouped[codeNbe]) {
+          grouped[codeNbe] = {
+            code: codeNbe,
+            libelle: libelleNbe,
+            montant: 0
+          };
+        }
+        grouped[codeNbe].montant += montant;
+      }
+    });
+    
+    // Convertir en tableau et trier par code
+    return Object.values(grouped).sort((a, b) => {
+      // Trier par code numérique si possible, sinon alphabétiquement
+      const numA = parseInt(a.code) || 0;
+      const numB = parseInt(b.code) || 0;
+      return numA - numB;
+    });
+  }, [budget.lignesBudgetaires, selectedSources]);
+  
+  // Calculer le total des dépenses filtrées
+  const totalDepensesFiltrees = useMemo(() => {
+    return depensesParCodeNbe.reduce((sum, item) => sum + item.montant, 0);
+  }, [depensesParCodeNbe]);
+  
+  const handleSourceToggle = (source: string) => {
+    setSelectedSources(prev => {
+      if (prev.includes(source)) {
+        // Empêcher de décocher la dernière source
+        if (prev.length === 1) {
+          toast.warning('Vous devez sélectionner au moins une source de financement');
+          return prev;
+        }
+        return prev.filter(s => s !== source);
+      } else {
+        return [...prev, source];
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Bouton Rapport */}
+      {budget.lignesBudgetaires && budget.lignesBudgetaires.length > 0 && (
+        <div className="flex justify-center print:hidden">
+          <Button
+            onClick={() => setShowRapport(!showRapport)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-3 text-lg font-semibold shadow-lg"
+            size="lg"
+          >
+            <FileText className="w-5 h-5 mr-2" />
+            {showRapport ? 'Masquer le Rapport' : 'Générer le Rapport'}
+          </Button>
+        </div>
+      )}
+
+      {/* Tableau de rapport groupé par code NBE */}
+      {showRapport && budget.lignesBudgetaires && budget.lignesBudgetaires.length > 0 && (
+        <Card className="mt-6 border-2 border-blue-300 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+            <CardTitle className="text-2xl font-bold text-blue-900 text-center mb-4">
+              DÉPENSES
+            </CardTitle>
+            {/* Checkboxes pour filtrer par source de financement */}
+            <div className="flex flex-wrap gap-4 justify-center items-center mt-4 pb-4 border-b border-blue-200">
+              <span className="text-sm font-semibold text-blue-800">Filtrer par source :</span>
+              {SOURCES_FINANCEMENT.map((source) => (
+                <label key={source.value} className="flex items-center gap-2 cursor-pointer hover:bg-blue-100 px-3 py-2 rounded-md transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedSources.includes(source.value)}
+                    onChange={() => handleSourceToggle(source.value)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-blue-900">{source.label}</span>
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-600">Total Dépenses</label>
-              <p className="text-2xl font-bold text-red-700">{totalDepenses.toLocaleString()} FCFA</p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-300">
+                    <th className="py-3 px-4 text-left font-bold text-slate-800 border-r border-slate-300">CODE/LIGNES</th>
+                    <th className="py-3 px-4 text-left font-bold text-slate-800 border-r border-slate-300">RUBRIQUES</th>
+                    <th className="py-3 px-4 text-right font-bold text-slate-800">MONTANTS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {depensesParCodeNbe.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-slate-500">
+                        <p className="text-slate-600">Aucune dépense trouvée pour les sources sélectionnées</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {depensesParCodeNbe.map((item, index) => (
+                        <tr key={index} className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="py-3 px-4 font-semibold text-slate-700 border-r border-slate-200">
+                            {item.code}
+                          </td>
+                          <td className="py-3 px-4 text-slate-700 border-r border-slate-200">
+                            {item.libelle}
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold text-slate-900">
+                            {item.montant.toLocaleString('fr-FR')}
+                          </td>
+                        </tr>
+                      ))}
+                      
+                      {/* Ligne de total */}
+                      <tr className="bg-blue-100 border-t-2 border-blue-400 font-bold">
+                        <td colSpan={2} className="py-4 px-4 text-right text-lg text-blue-900">
+                          TOTAL DES DEPENSES {selectedSources.length < 5 && `(${selectedSources.join(' + ')})`}
+                        </td>
+                        <td className="py-4 px-4 text-right text-xl text-blue-700">
+                          {totalDepensesFiltrees.toLocaleString('fr-FR')}
+                        </td>
+                      </tr>
+                    </>
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div className="md:col-span-2 border-t pt-4">
-              <label className="text-sm font-medium text-slate-600">Solde</label>
-              <p className={`text-2xl font-bold ${totalRecettes - totalDepenses >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                {(totalRecettes - totalDepenses).toLocaleString()} FCFA
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

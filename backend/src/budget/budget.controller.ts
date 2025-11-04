@@ -12,6 +12,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { BudgetService } from './budget.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
@@ -137,6 +138,22 @@ export class BudgetController {
     return this.budgetService.getActivitySuggestions(centreId, query);
   }
 
+  @Get('suggestions/activites-cles')
+  @ApiOperation({ summary: 'Récupérer les suggestions d\'activités clés' })
+  @ApiQuery({ name: 'q', required: false, description: 'Terme de recherche' })
+  @ApiResponse({ status: 200, description: 'Liste des suggestions d\'activités clés' })
+  async getActiviteCleSuggestions(@Query('q') query?: string) {
+    return this.budgetService.getActiviteCleSuggestions(query);
+  }
+
+  @Get('suggestions/types-moyens')
+  @ApiOperation({ summary: 'Récupérer les suggestions de types de moyens' })
+  @ApiQuery({ name: 'q', required: false, description: 'Terme de recherche' })
+  @ApiResponse({ status: 200, description: 'Liste des suggestions de types de moyens' })
+  async getTypeMoyensSuggestions(@Query('q') query?: string) {
+    return this.budgetService.getTypeMoyensSuggestions(query);
+  }
+
   // Endpoints pour gérer les lignes budgétaires individuellement (doivent être avant les routes :id)
   @Post(':budgetId/lignes')
   @Roles(RoleType.CHEF_CENTRE)
@@ -194,8 +211,37 @@ export class BudgetController {
   @Put(':id')
   @Roles(RoleType.CHEF_CENTRE)
   async update(@Request() req: AuthenticatedRequest, @Param('id') id: string, @Body() dto: UpdateBudgetDto) {
-    const userId = req.user.id;
-    return this.budgetService.update(id, userId, dto);
+    try {
+      const userId = req.user.id;
+      return await this.budgetService.update(id, userId, dto);
+    } catch (error: any) {
+      console.error('[Budget Controller] Erreur lors de la mise à jour:', error);
+      console.error('[Budget Controller] Message:', error.message);
+      console.error('[Budget Controller] Stack:', error.stack);
+      
+      // Si c'est une erreur HTTP déjà formatée, la re-lancer
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      // Si c'est une erreur de validation (BadRequestException), la convertir en HttpException
+      if (error.name === 'BadRequestException' || error.status === 400) {
+        throw new HttpException(
+          { message: error.message || 'Erreur de validation', error: 'Bad Request' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      
+      // Pour les autres erreurs (Prisma, etc.), retourner une erreur 500 avec un message générique
+      throw new HttpException(
+        { 
+          message: error.message || 'Erreur serveur lors de la mise à jour du budget', 
+          error: 'Internal Server Error',
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Post(':id/submit')
